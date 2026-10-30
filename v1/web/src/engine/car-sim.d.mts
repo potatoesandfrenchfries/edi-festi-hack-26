@@ -40,6 +40,10 @@ export class CarSim {
   leaving: Uint8Array;
   group: Int32Array;
   switchOff(i: number): void;
+  /** 1 for a road that is closed, or whose every way on is closed (a cul-de-sac into a closure). */
+  dead: Uint8Array;
+  /** Closes or reopens these roads. Cars already on one finish it; cars about to turn into one choose another way. */
+  setClosed(edges: ArrayLike<number>, closed: boolean): void;
   /** The road graph: node count, each road's end nodes and class index, and the roads leaving (`out`, from `outStart`) and entering (`inEdges`, from `inStart`) each node. */
   nodes: number;
   from: Int32Array;
@@ -55,8 +59,6 @@ export class CarSim {
   routeStep: Int32Array;
   /** Quickest route (road ids) from node `start` to node `goal` on roads that are not dead, or null. Cached until the closures change. */
   findDetour(start: number, goal: number): Int32Array | null;
-  /** 1 for a road that is closed, or whose every way on is closed. */
-  dead: Uint8Array;
   signalCount: number;
   redHolds: number;
   // Per-car and per-road state, read and written by the gridlock relief in cars-runner.ts (the same fields the engine's own `spawn` sets).

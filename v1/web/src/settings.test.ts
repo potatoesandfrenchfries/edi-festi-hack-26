@@ -5,11 +5,11 @@ const range = { min: 1, max: 1.5 };
 
 describe('settings', () => {
   it('keeps valid values', () => {
-    const saved = { day: 'saturday', hour: 14, festival: 1.25, theme: 'dark', minimised: true, showInferred: false, showTowers: false, heights3d: false, preset: 'light', showBuses: false, busSpeed: 60, busTraffic: false, showCars: false, busCarCoupling: false, busFrequency: 2, carDemand: 0.5 };
+    const saved = { day: 'saturday', hour: 14, festival: 1.25, theme: 'dark', minimised: true, showInferred: false, showTowers: false, heights3d: false, preset: 'light', showBuses: false, busSpeed: 60, busTraffic: false, showCars: false, busCarCoupling: false, busFrequency: 2, carDemand: 0.5, festivalClosures: false };
     expect(sanitise(saved, range)).toEqual(saved);
   });
   it('replaces invalid or hostile values with defaults and clamps the festival multiplier', () => {
-    expect(sanitise({ day: 'monday', hour: 24, festival: 9, theme: 'pink', minimised: 'yes', showInferred: 'no', showTowers: 0, heights3d: null, preset: 'ultra', showBuses: 'no', busSpeed: 7, busTraffic: 0, showCars: 'yes', busCarCoupling: 'on', busFrequency: 'lots', carDemand: null }, range)).toEqual({ ...DEFAULT_SETTINGS, festival: 1.5 });
+    expect(sanitise({ day: 'monday', hour: 24, festival: 9, theme: 'pink', minimised: 'yes', showInferred: 'no', showTowers: 0, heights3d: null, preset: 'ultra', showBuses: 'no', busSpeed: 7, busTraffic: 0, showCars: 'yes', busCarCoupling: 'on', busFrequency: 'lots', carDemand: null, festivalClosures: 'no' }, range)).toEqual({ ...DEFAULT_SETTINGS, festival: 1.5 });
     expect(sanitise({ hour: 1.5, festival: Number.NaN }, range)).toEqual(DEFAULT_SETTINGS);
     expect(sanitise('nonsense', range)).toEqual(DEFAULT_SETTINGS);
   });

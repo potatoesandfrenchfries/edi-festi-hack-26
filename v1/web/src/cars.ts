@@ -100,6 +100,7 @@ export class CarSimulation {
   private lastDraw = 0;
   private failed = false;
   private busStates: Float32Array | null = null;
+  private closedEdges: number[] = [];
   private tripVenues: TripVenue[] = [];
   private tripRates: TripRates | null = null;
   private layer3d: Car3dLayer | null = null;
@@ -174,12 +175,18 @@ export class CarSimulation {
     this.sendRun();
   }
 
+  /** The roads closed to vehicles now (edge indexes in the road graph; an empty list reopens everything). */
+  setClosedEdges(edges: readonly number[]): void {
+    this.closedEdges = [...edges];
+    this.worker?.postMessage({ type: 'closed', edges: this.closedEdges });
+  }
+
   /** The venues cars can be sent to. Set before `start`: the worker keeps car slots for the trips when it is created. */
   setTripVenues(venues: readonly TripVenue[]): void {
     this.tripVenues = [...venues];
   }
 
-  /** How many festival cars to start per simulated second at each venue (the order of `setTripVenues`). */
+  /** How many festival cars to start per simulated second at each venue (the order of `setTripVenues`). Null stops the trips. */
   setTripRates(rates: TripRates | null): void {
     this.tripRates = rates;
     if (rates) this.worker?.postMessage({ type: 'trips', rates });
@@ -219,6 +226,7 @@ export class CarSimulation {
     worker.postMessage({ type: 'init', roads: this.data, population: this.data.sim?.population ?? DEFAULT_POPULATION, seed: this.data.sim?.seed ?? SEED, maxDemand: MAX_DEMAND, venues: this.tripVenues, tripSlots: TRIP_SLOTS });
     if (this.demand !== 1) worker.postMessage({ type: 'demand', fraction: this.demand });
     if (this.busStates) worker.postMessage({ type: 'buses', data: this.busStates });
+    if (this.closedEdges.length) worker.postMessage({ type: 'closed', edges: this.closedEdges });
     if (this.tripRates) worker.postMessage({ type: 'trips', rates: this.tripRates });
   }
 

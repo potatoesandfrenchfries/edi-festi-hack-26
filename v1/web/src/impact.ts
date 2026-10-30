@@ -209,6 +209,8 @@ export interface Scenario {
   busesOn: boolean;
   busFrequency: number;
   carDemand: number;
+  /** Streets closed to vehicles right now (festival closures), by name. */
+  closedStreets?: string[];
 }
 
 /** Plain-English sentences about the day so far. Every figure is an estimate and the last sentence says so. */
@@ -227,6 +229,8 @@ export function commentary(summary: Summary, scenario: Scenario, ratePerHourGbp:
     const carShare = Math.round((100 * cars.totalGbp) / all.totalGbp);
     lines.push(`Cars account for ${carShare}% of the cost and buses for ${100 - carShare}%.`);
   }
+  const closed = scenario.closedStreets ?? [];
+  if (closed.length) lines.push(`${closed.length === 1 ? 'One street is' : `${closed.length} streets are`} closed to vehicles right now: ${closed.join(', ')}.`);
   if (scenario.busFrequency !== 1) lines.push(`Buses are running ${scenario.busFrequency < 1 ? 'less' : 'more'} often than the timetable (×${scenario.busFrequency.toFixed(2)}).`);
   if (scenario.carDemand !== 1) lines.push(`There are ${scenario.carDemand < 1 ? 'fewer' : 'more'} cars on the road than a normal day (×${scenario.carDemand.toFixed(2)}).`);
   lines.push('Illustrative estimates from placeholder values, not measurements.');

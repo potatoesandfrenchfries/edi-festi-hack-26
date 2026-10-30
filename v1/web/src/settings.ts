@@ -23,9 +23,11 @@ export interface Settings {
   busFrequency: number;
   /** How many cars are on the road, as a multiple of a normal day's hourly profile. */
   carDemand: number;
+  /** Close the streets the council closes to vehicles on a Fringe day, at the hours it closes them. */
+  festivalClosures: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { day: 'weekday', hour: 9, festival: 1, theme: 'system', minimised: false, showInferred: true, showTowers: true, heights3d: true, preset: 'detailed', showBuses: true, busSpeed: DEFAULT_BUS_SPEED, busTraffic: true, showCars: true, busCarCoupling: true, busFrequency: 1, carDemand: 1 };
+export const DEFAULT_SETTINGS: Settings = { day: 'weekday', hour: 9, festival: 1, theme: 'system', minimised: false, showInferred: true, showTowers: true, heights3d: true, preset: 'detailed', showBuses: true, busSpeed: DEFAULT_BUS_SPEED, busTraffic: true, showCars: true, busCarCoupling: true, busFrequency: 1, carDemand: 1, festivalClosures: true };
 /** The scenario sliders' bounds when `data/economics.json` is missing; otherwise they come from config/economics.yaml. */
 export const SCENARIO_RANGES = { busFrequency: { min: 0.25, max: 3 }, carDemand: { min: 0.25, max: 1.5 } };
 export type ScenarioRanges = typeof SCENARIO_RANGES;
@@ -56,6 +58,7 @@ export function sanitise(raw: unknown, festival: { min: number; max: number }, r
     busCarCoupling: input.busCarCoupling !== false,
     busFrequency: within(input.busFrequency, ranges.busFrequency, DEFAULT_SETTINGS.busFrequency),
     carDemand: within(input.carDemand, ranges.carDemand, DEFAULT_SETTINGS.carDemand),
+    festivalClosures: input.festivalClosures !== false,
   };
 }
 

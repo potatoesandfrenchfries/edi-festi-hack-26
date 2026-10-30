@@ -31,12 +31,17 @@ export interface BusesMessage {
   type: 'buses';
   data: Float32Array | null;
 }
+/** The roads closed to vehicles right now (festival street closures), as edge indexes in the road graph. Replaces the previous set. */
+export interface ClosedMessage {
+  type: 'closed';
+  edges: number[];
+}
 /** How many festival cars to start per simulated second at each venue (in the init order), arriving and leaving, and where they come from. */
 export interface TripsMessage {
   type: 'trips';
   rates: TripRates;
 }
-export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage | TripsMessage;
+export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage | ClosedMessage | TripsMessage;
 
 export const BUS_FLOATS = 4; // longitude, latitude, bearing (degrees), state
 export const BUS_MOVING = 0;

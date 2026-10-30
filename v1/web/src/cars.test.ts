@@ -174,6 +174,51 @@ describe('CarRunner', () => {
     });
   });
 
+  describe('closed roads', () => {
+    const closed = (edges: number[]): ToWorker => ({ type: 'closed', edges });
+    it('closes the roads it is given and replaces the set each time', () => {
+      const { runner } = collect();
+      runner.handle(init(gridRoads(), 40));
+      runner.handle(closed([0, 1, 2]));
+      expect(runner.closedRoads()).toBe(3);
+      runner.handle(closed([2, 3]));
+      expect(runner.closedRoads()).toBe(2);
+      runner.handle(closed([]));
+      expect(runner.closedRoads()).toBe(0);
+    });
+    it('ignores roads that are not in the graph and a set that has not changed', () => {
+      const { runner, messages } = collect();
+      runner.handle(init(gridRoads(), 40));
+      runner.handle(closed([-1, 9999, 4]));
+      runner.handle(closed([4]));
+      expect(runner.closedRoads()).toBe(1);
+      expect(messages.some((m) => m.type === 'error')).toBe(false);
+    });
+    it('keeps running with a street closed, and the cars still drive', () => {
+      const { runner, messages } = collect();
+      runner.handle(init(gridRoads(), 40));
+      runner.handle(closed([0, 1, 2, 3, 4, 5, 6, 7]));
+      runner.simulate(300);
+      expect(messages.some((m) => m.type === 'error')).toBe(false);
+      expect(runner.figures().cars).toBe(40);
+      expect(runner.figures().averageKmh).toBeGreaterThan(0);
+    });
+    it('forgets closures when it starts again', () => {
+      const { runner } = collect();
+      runner.handle(init(gridRoads(), 40));
+      runner.handle(closed([0, 1]));
+      runner.handle(init(gridRoads(), 40));
+      expect(runner.closedRoads()).toBe(0);
+    });
+    it('does not put a switched-on car on a closed road', () => {
+      const { runner } = collect();
+      runner.handle({ type: 'init', roads: gridRoads(), population: 20, seed: 7, maxDemand: 2 });
+      runner.handle(closed(Array.from({ length: 40 }, (_, i) => i))); // most of the grid
+      runner.handle({ type: 'demand', fraction: 2 });
+      expect(runner.figures().cars).toBeGreaterThan(19); // cars were added where there was an open road
+    });
+  });
+
   describe('congestion sums', () => {
     it('reports the simulated time, distance driven and slow time since the last message, and starts again each time', () => {
       const { runner, stats } = collect();

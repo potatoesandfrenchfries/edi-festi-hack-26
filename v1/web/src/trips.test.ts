@@ -71,6 +71,23 @@ describe('inbound trips', () => {
     expect(r.figures().cars).toBe(0);
   });
 
+  it('a closure round the venue makes drivers park short and walk, and the trip still ends', () => {
+    const r = runner([centre]);
+    const node = 3 * SIDE + 3;
+    const sim = new CarSim(roads, { population: 2, seed: 1 });
+    const around: number[] = [];
+    for (let e = 0; e < sim.E; e++) if (sim.from[e] === node || sim.to[e] === node) around.push(e);
+    r.handle({ type: 'closed', edges: around });
+    r.handle({ type: 'trips', rates: rates([0.1], [0], { south: 1 }) });
+    r.simulate(300);
+    r.handle({ type: 'trips', rates: rates([0], [0]) });
+    r.simulate(900);
+    const stats = r.tripFigures()!;
+    expect(stats.arrived).toBeGreaterThanOrEqual(stats.started * 0.8);
+    expect(stats.walkMetres / stats.arrived).toBeGreaterThan(50); // a block away
+    expect(stats.unreachable).toBe(0);
+  });
+
   it('the demand slider does not remove festival cars', () => {
     const r = runner([centre]);
     r.handle({ type: 'trips', rates: rates([0.1], [0], { local: 1 }) });

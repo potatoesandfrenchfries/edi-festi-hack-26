@@ -42,6 +42,8 @@ export class CarRunner {
   /** Festival cars heading for venues, or null when no venues were given. */
   private trips: TripFlow | null = null;
   private stepCount = 0;
+  /** Roads closed to vehicles at the moment (edge indexes). */
+  private closedNow = new Set<number>();
   /** How buses on a road slow its cars. Null until the engine exists. */
   private effects: BusRoadEffects | null = null;
   private slowedByBuses = 0;
@@ -71,6 +73,7 @@ export class CarRunner {
         this.sim.reseed({ population: slots + tripSlots });
         this.effects = new BusRoadEffects(this.sim);
         this.slowedByBuses = 0;
+        this.closedNow = new Set();
         for (let i = this.population; i < this.sim.n; i++) this.sim.switchOff(i);
         this.random = mulberry32(message.seed + 1); // its own stream, so relief never changes where the engine places or turns cars
         this.trips = message.venues?.length ? new TripFlow(this.sim, message.venues, message.roads.classes, slots, mulberry32(message.seed + 2)) : null;
@@ -84,6 +87,8 @@ export class CarRunner {
         if (this.sim) this.applyDemand(this.sim, message.fraction);
       } else if (message.type === 'trips') {
         this.trips?.setRates(message.rates);
+      } else if (message.type === 'closed') {
+        if (this.sim) this.applyClosed(this.sim, message.edges);
       } else if (message.type === 'buses') {
         this.slowedByBuses = this.effects?.apply(message.data) ?? 0;
       } else {
@@ -149,6 +154,11 @@ export class CarRunner {
     this.target = sim.time;
   }
 
+  /** How many roads are closed to vehicles at the moment. */
+  closedRoads(): number {
+    return this.closedNow.size;
+  }
+
   /** The slow-traffic sums since the last call, then starts them again from zero. For headless scenario runs, which never get a stats message. */
   takeSums(): { simSeconds: number; delayCarSeconds: number; idleCarSeconds: number; distanceM: number } {
     const sums = { simSeconds: this.simAcc, delayCarSeconds: this.delayAcc, idleCarSeconds: this.idleAcc, distanceM: this.distanceAcc };
@@ -191,6 +201,17 @@ export class CarRunner {
       if (v < 0.1) this.idleAcc += dt;
       this.distanceAcc += v * dt;
     }
+  }
+
+  /** Closes exactly these roads and reopens any that were closed before and are not in the list. A set that has not changed does nothing. */
+  private applyClosed(sim: CarSim, edges: readonly number[]): void {
+    const next = new Set(edges.filter((e) => e >= 0 && e < sim.E));
+    const reopen = [...this.closedNow].filter((e) => !next.has(e));
+    const close = [...next].filter((e) => !this.closedNow.has(e));
+    if (reopen.length === 0 && close.length === 0) return;
+    if (reopen.length) sim.setClosed(reopen, false);
+    if (close.length) sim.setClosed(close, true);
+    this.closedNow = next;
   }
 
   /** Puts the cars on the road to `fraction` of the init population: extra cars leave at their next junction, missing ones join at a road start. */
@@ -239,7 +260,7 @@ export class CarRunner {
       const lane = Math.floor(this.random() * (sim.lanes[lo] as number));
       const key = lo * 4 + lane;
       const rear = sim.rear[key] as number;
-      if (sim.laneCapacity(lo) < 1 || (rear >= 0 && (sim.pos[rear] as number) < ROOM_AT_START_M)) continue;
+      if (sim.dead[lo] || sim.laneCapacity(lo) < 1 || (rear >= 0 && (sim.pos[rear] as number) < ROOM_AT_START_M)) continue;
       sim.active[car] = 1;
       sim.leaving[car] = 0;
       sim.group[car] = -1;

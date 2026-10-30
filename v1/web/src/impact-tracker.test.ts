@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import type { Closure } from './closures';
 import type { Economics } from './impact';
 import { DAY_START_S, ImpactTracker, type ImpactScenario, type ImpactSources } from './impact-tracker';
+import type { DayType } from './presence';
 import type { BusRates } from './traffic';
 
 const econ: Economics = {
@@ -137,5 +139,65 @@ describe('ImpactTracker', () => {
     const lines = tracker.view().lines;
     expect(lines[0]).toContain('By 06:30');
     expect(lines.join(' ')).toContain('×2.00');
+  });
+});
+
+describe('ImpactTracker closures', () => {
+  const high: Closure = { id: 'R1', location: 'high_street', name: 'High Street', festival: 'Fringe', type: 'closed_to_vehicles', from: 10.5 * 3600, to: 21 * 3600, ways: [1], confidence: 'medium' };
+  const schedule = (days: Partial<Record<DayType, number[]>> = { weekday: [4, 5] }) => ({
+    at: (day: DayType, t: number) => {
+      const active = (days[day] ?? []).length && t >= high.from && t < high.to ? [high] : [];
+      return { edges: active.length ? [...(days[day] ?? [])] : [], active };
+    },
+  });
+  function withClosures(over: Partial<ImpactScenario> = {}, days?: Partial<Record<DayType, number[]>>) {
+    const clock = { now: 1000 };
+    const sent: number[][] = [];
+    const src: ImpactSources = {
+      busRates: () => rates, setCarDemand: () => undefined, setClosedEdges: (e) => void sent.push(e), speed: () => 60, hidden: () => false, now: () => clock.now,
+    };
+    const tracker = new ImpactTracker(econ, src, schedule(days));
+    tracker.setScenario({ carsOn: true, busesOn: true, busFrequency: 1, carDemand: 1, day: 'weekday', closuresOn: true, ...over });
+    return { tracker, sent };
+  }
+  const sums = (simSeconds: number) => ({ simSeconds, delayCarSeconds: 0, idleCarSeconds: 0, distanceM: 1000 });
+
+  it('closes nothing before the closure hours, then closes the streets when the day reaches them, and reopens at the end', () => {
+    const { tracker, sent } = withClosures();
+    expect(sent).toEqual([]); // 06:00: nothing closed, nothing to say
+    tracker.onCarStats(sums(5 * 3600)); // to 11:00
+    expect(sent).toEqual([[4, 5]]);
+    tracker.onCarStats(sums(60));
+    expect(sent).toEqual([[4, 5]]); // unchanged, not sent again
+    tracker.onCarStats(sums(10 * 3600)); // to 21:01
+    expect(sent).toEqual([[4, 5], []]);
+  });
+  it('names the closed streets in the commentary while they are closed', () => {
+    const { tracker } = withClosures();
+    tracker.onCarStats(sums(5 * 3600));
+    expect(tracker.view().lines.join(' ')).toContain('One street is closed to vehicles right now: High Street.');
+  });
+  it('uses the closures of the chosen day type', () => {
+    const { tracker, sent } = withClosures({ day: 'saturday' }, { weekday: [4, 5] });
+    tracker.onCarStats(sums(5 * 3600));
+    expect(sent).toEqual([]);
+  });
+  it('reopens the streets when the closures are switched off, and when the cars are', () => {
+    const { tracker, sent } = withClosures();
+    tracker.onCarStats(sums(5 * 3600));
+    tracker.setScenario({ carsOn: true, busesOn: true, busFrequency: 1, carDemand: 1, day: 'weekday', closuresOn: false });
+    expect(sent.at(-1)).toEqual([]);
+    expect(tracker.view().lines.join(' ')).not.toContain('closed to vehicles');
+  });
+  it('sends them again after a restart of the day, to the 06:00 state', () => {
+    const { tracker, sent } = withClosures();
+    tracker.onCarStats(sums(5 * 3600));
+    tracker.restart();
+    expect(sent.at(-1)).toEqual([]);
+  });
+  it('does nothing when there is no schedule', () => {
+    const { tracker } = setup();
+    tracker.onCarStats(sums(5 * 3600));
+    expect(tracker.view().lines.join(' ')).not.toContain('closed to vehicles');
   });
 });

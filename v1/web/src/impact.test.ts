@@ -155,6 +155,11 @@ describe('commentary', () => {
     expect(day({ busFrequency: 2 }).join(' ')).toContain('more often than the timetable (×2.00)');
     expect(day({ carDemand: 0.5 }).join(' ')).toContain('fewer cars');
   });
+  it('names the streets that are closed to vehicles', () => {
+    expect(day({ closedStreets: ['High Street'] }).join(' ')).toContain('One street is closed to vehicles right now: High Street.');
+    expect(day({ closedStreets: ['High Street', 'Cowgate'] }).join(' ')).toContain('2 streets are closed to vehicles right now: High Street, Cowgate.');
+    expect(day().join(' ')).not.toContain('closed to vehicles');
+  });
   it('always calls itself an estimate', () => {
     expect(day().at(-1)).toContain('estimates');
   });

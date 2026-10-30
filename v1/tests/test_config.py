@@ -15,7 +15,20 @@ PROPERTY_FORBIDDEN = re.compile(r"\b(rent|rateable|rateable_value|property_price
 TRAFFIC_IMPACT = {"economics.yaml"}  # design rule 6 exception: modelled road-congestion impact, labelled as an estimate
 
 
-@pytest.mark.parametrize("name", ["model.yaml", "use_weights.yaml", "profiles.yaml", "roads.yaml", "economics.yaml", "demand.yaml", "accommodation.yaml", "transport.yaml"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "model.yaml",
+        "use_weights.yaml",
+        "profiles.yaml",
+        "roads.yaml",
+        "economics.yaml",
+        "demand.yaml",
+        "accommodation.yaml",
+        "transport.yaml",
+        "revenue.yaml",
+    ],
+)
 def test_every_value_states_its_origin(name):
     """Design rule 8: every tunable has a comment saying whether it is a placeholder, literature, calibrated or an assumption."""
     for number, line in enumerate((CONFIG / name).read_text().splitlines(), 1):

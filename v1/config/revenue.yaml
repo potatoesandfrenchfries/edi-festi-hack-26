@@ -1,0 +1,25 @@
+# What the festival brings in to set against what it loses (web/src/revenue.ts, web/src/scenario.ts): bus fares, the visitor levy and
+# parking. A modelled estimate, never an accounts figure. Only the festival's own increment is counted, so the same evening without it earns 0.
+# The revenue goes to different people from the losses (drivers and riders lose time; the council and bus operators gain cash), so the two are
+# shown side by side, never netted into one number. Every value carries an origin tag: placeholder, literature, calibrated or assumption.
+# Nothing here is calibrated. Values marked placeholder name the source to check them against before they are quoted anywhere.
+
+status: placeholder                 # assumption: every number below is a placeholder until checked against operator accounts and council figures
+
+fares:
+  average_fare_gbp: 1.60            # placeholder: revenue per boarding after day tickets, passes and free concession travel; check against Lothian Buses accounts (passenger revenue / passenger journeys)
+  shuttle_fare_gbp: 2.00            # placeholder: revenue per park-and-ride shuttle boarding (one direction); check against the current park-and-ride fare
+
+operations:
+  bus_operating_gbp_per_km: 2.50    # placeholder: running a bus one more kilometre apart from fuel (driver, maintenance, vehicle); fuel is priced in economics.yaml; check against DfT bus statistics
+
+levy:
+  rate: 0.05                        # placeholder: visitor levy as a share of the accommodation charge; verify the rate, the start date and what it covers against the council's levy decision
+  paid_share: 0.85                  # placeholder: share of staying guests in chargeable accommodation (not with friends or family)
+  guests_per_room: 2.0              # assumption: guests sharing a room or unit; the levy is charged per room-night, the demand counts people
+  nightly_rate_gbp: 150.0           # placeholder: average charge for a room-night in August before the levy; check against Edinburgh August hotel and short-term-let rates
+  levied_night_share: 0.9           # assumption: share of room-nights that fall inside the levy's cap on nights per stay
+
+parking:
+  council_paid_share: 0.2           # placeholder: share of festival car arrivals that park in a council-charged space in the evening (most controlled zones stop charging by early evening)
+  charge_gbp: 4.0                   # placeholder: average charge for one evening stay in those spaces; park-and-ride parking is taken to be free (verify)

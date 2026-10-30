@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: city help install install-py install-web install-browsers buses cars economics demand accommodation transport fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
+.PHONY: city help install install-py install-web install-browsers buses cars economics closures demand accommodation transport revenue fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
         test test-py test-web test-e2e lint web-dev web-build clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
@@ -27,6 +27,9 @@ cars: ## Road graph for the simulated cars: OSM roads from Overpass (cached), th
 	$(PY) pipeline.fetch_osm_roads
 	$(PY) pipeline.stage08_roads
 
+closures: ## Festival street closures for the map (the Fringe typical day, from ../closures) to web/public/data/closures.json
+	cd .. && uv run python -m closures.web --out v1/web/public/data/closures.json
+
 economics: ## Congestion-impact constants (config/economics.yaml) to web/public/data/economics.json
 	$(PY) pipeline.stage09_economics
 
@@ -38,6 +41,9 @@ accommodation: ## Licensed short-term-let beds per postcode (public council regi
 
 transport: ## Festival travel assumptions (config/transport.yaml) to web/public/data/transport.json
 	$(PY) pipeline.stage12_transport
+
+revenue: ## Festival revenue assumptions (config/revenue.yaml: fares, visitor levy, parking) to web/public/data/revenue.json
+	$(PY) pipeline.stage13_revenue
 
 fetch: ## Download the raw data for AREA (default pilot; AREA=full is several GB; cached; see DATA_SOURCES.md)
 	$(PY) pipeline.fetch_overture

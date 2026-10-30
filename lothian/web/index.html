@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lothian bus simulator</title>
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <aside id="panel" aria-label="Simulation controls">
+    <header>
+      <h1>Lothian bus simulator</h1>
+      <button id="collapse" type="button" aria-label="Minimise panel" aria-expanded="true">–</button>
+    </header>
+    <div id="body">
+      <div class="stats">
+        <div><strong id="count">0</strong><span>buses on the road</span></div>
+        <div><strong id="routes">0</strong><span>routes</span></div>
+      </div>
+
+      <div class="row">
+        <button id="play" type="button">Pause</button>
+        <div id="speeds" role="group" aria-label="Simulation speed">
+          <button type="button" data-speed="1">1×</button>
+          <button type="button" data-speed="5">5×</button>
+          <button type="button" data-speed="20">20×</button>
+          <button type="button" data-speed="60">60×</button>
+          <button type="button" data-speed="200">200×</button>
+        </div>
+      </div>
+
+      <label class="field">Frequency <output id="freq-out">1.0×</output>
+        <input id="freq" type="range" min="0.5" max="4" step="0.1" value="1">
+      </label>
+
+      <label class="field">Route
+        <select id="route"><option value="">All routes</option></select>
+      </label>
+
+      <div class="toggles">
+        <label><input id="lines" type="checkbox"> All route lines</label>
+        <label><input id="stops" type="checkbox" checked> Bus stops</label>
+      </div>
+
+      <p class="note">
+        Each route has a bus every <em>headway</em> minutes, looping end to end and back, at the speeds in the
+        published timetable. This is a simulation, not live positions or a clock-accurate timetable. Click a
+        bus for its route and next stop. Data: DfT Bus Open Data Service (OGL v3.0), feed <span id="feed">…</span>.
+      </p>
+    </div>
+  </aside>
+
+  <div id="error" role="alert" hidden></div>
+
+  <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

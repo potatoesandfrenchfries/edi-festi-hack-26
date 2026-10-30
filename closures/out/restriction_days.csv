@@ -1,0 +1,393 @@
+date,restriction_id,location_id,festival,restriction_type,bans_vehicles,status,time_from,time_to
+2026-08-07,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-10,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-11,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-12,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-13,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-14,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-17,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-18,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-19,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-20,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-21,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-24,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-25,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-26,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-27,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-28,R001,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-08,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-09,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-15,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-16,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-22,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-23,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-29,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-30,R002,high_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-07,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-10,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-11,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-12,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-13,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-14,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-17,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-18,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-19,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-20,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-21,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-24,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-25,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-26,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-27,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-28,R003,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-08,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-09,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-15,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-16,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-22,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-23,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-29,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-30,R004,parliament_square,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-07,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-10,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-11,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-12,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-13,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-14,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-17,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-18,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-19,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-20,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-21,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-24,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-25,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-26,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-27,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-28,R005,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-08,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-09,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-15,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-16,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-22,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-23,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-29,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-30,R006,cockburn_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-07,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-10,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-11,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-12,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-13,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-14,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-17,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-18,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-19,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-20,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-21,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-24,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-25,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-26,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-27,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-28,R007,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,24:00
+2026-08-08,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-09,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-15,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-16,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-22,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-23,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-29,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-30,R008,st_giles_street,Fringe/summer festivals,closed_to_vehicles,True,in_force,10:30,21:00
+2026-08-07,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-10,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-11,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-12,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-13,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-14,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-17,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-18,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-19,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-20,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-21,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-24,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-25,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-26,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-27,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-28,R009,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,19:00
+2026-08-08,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-09,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-15,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-16,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-22,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-23,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-29,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-08-30,R010,st_giles_street_east_west,Fringe/summer festivals,loading_only,False,in_force,00:00,24:00
+2026-07-19,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-20,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-21,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-22,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-23,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-24,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-25,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-26,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-27,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-28,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-29,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-30,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-31,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-01,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-02,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-03,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-04,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-05,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-06,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-07,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-08,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-09,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-10,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-11,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-12,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-13,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-14,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-15,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-16,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-17,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-18,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-19,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-20,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-21,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-22,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-23,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-24,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-25,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-26,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-27,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-28,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-29,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-30,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-08-31,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-01,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-02,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-03,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-04,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-05,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-06,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-09-07,R011,blair_street_south_bridge_end,Fringe/summer festivals,closed_to_vehicles,True,in_force,00:00,24:00
+2026-07-27,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-07-28,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-07-29,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-07-30,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-07-31,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-01,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-02,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-03,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-04,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-05,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-06,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-07,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-08,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-09,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-10,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-11,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-12,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-13,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-14,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-15,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-16,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-17,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-18,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-19,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-20,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-21,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-22,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-23,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-24,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-25,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-26,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-27,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-28,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-29,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-30,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-08-31,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-09-01,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-09-02,R012,cowgate_candlemaker_blackfriars,Fringe/summer festivals,closed_to_vehicles,True,in_force,15:00,05:00
+2026-07-27,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-07-28,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-07-29,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-07-30,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-07-31,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-01,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-02,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-03,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-04,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-05,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-06,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-07,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-08,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-09,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-10,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-11,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-12,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-13,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-14,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-15,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-16,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-17,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-18,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-19,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-20,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-21,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-22,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-23,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-24,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-25,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-26,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-27,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-28,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-29,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-30,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-31,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-01,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-02,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-03,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-04,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-05,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-06,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-09-07,R013,east_adam_street_pleasance,Fringe/summer festivals,junction_closed,True,in_force,00:00,24:00
+2026-08-05,R014,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:00,24:00
+2026-08-06,R014,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:00,24:00
+2026-08-05,R015,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:00,24:00
+2026-08-06,R015,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:00,24:00
+2026-08-07,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-10,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-11,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-12,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-13,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-14,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-17,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-18,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-19,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-20,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-21,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-24,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-25,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-26,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-27,R016,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,17:30,24:00
+2026-08-07,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-10,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-11,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-12,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-13,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-14,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-17,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-18,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-19,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-20,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-21,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-24,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-25,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-26,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-27,R017,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,17:30,24:00
+2026-08-08,R018,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,15:30,24:00
+2026-08-15,R018,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,15:30,24:00
+2026-08-22,R018,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,15:30,24:00
+2026-08-28,R018,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,15:30,24:00
+2026-08-29,R018,lawnmarket,Royal Edinburgh Military Tattoo,pedestrian_cycle_only,True,in_force,15:30,24:00
+2026-08-08,R019,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,15:30,24:00
+2026-08-15,R019,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,15:30,24:00
+2026-08-22,R019,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,15:30,24:00
+2026-08-28,R019,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,15:30,24:00
+2026-08-29,R019,johnston_terrace,Royal Edinburgh Military Tattoo,closed_to_vehicles,True,in_force,15:30,24:00
+2026-07-27,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-07-28,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-07-29,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-07-30,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-07-31,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-01,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-02,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-03,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-04,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-05,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-06,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-07,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-08,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-09,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-10,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-11,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-12,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-13,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-14,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-15,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-16,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-17,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-18,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-19,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-20,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-21,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-22,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-23,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-24,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-25,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-26,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-27,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-28,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-29,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-30,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-08-31,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-01,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-02,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-03,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-04,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-05,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-06,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-09-07,R020,johnston_terrace,Fringe/summer festivals,access_restricted,True,in_force,00:00,24:00
+2026-07-10,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-11,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-12,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-14,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-17,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-18,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-19,R021,johnston_terrace,Castle Concerts,closed_to_vehicles,True,in_force,08:00,24:00
+2026-07-24,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-25,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-26,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-27,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-28,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-29,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-30,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-07-31,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-01,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-02,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-03,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-04,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-05,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-06,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-07,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-08,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-09,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-10,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-11,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-12,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-13,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-14,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-15,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-16,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-17,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-18,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-19,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-20,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-21,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-22,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-23,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-24,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-25,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-26,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-27,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-28,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-29,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-30,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-08-31,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-01,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-02,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-03,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-04,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-05,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-06,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00
+2026-09-07,R022,candlemaker_row_george_iv_bridge,Fringe/summer festivals,pedestrian_provision,False,in_force,00:00,24:00

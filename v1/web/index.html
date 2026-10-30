@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Edinburgh presence map</title>
+  <meta name="description" content="Modelled estimates of how many people are active in each Edinburgh building, by hour of day.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23c2410c'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div id="map" aria-label="Interactive 3D map of Edinburgh"></div>
+  <p id="banner" role="note">Modelled estimates, not live counts.</p>
+  <p id="profile-notice" role="note" hidden>Uncalibrated placeholder profiles. Building values are template estimates from floor area, not census figures. Visitors and tourists are not modelled.</p>
+  <div id="loading" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><p>Loading Edinburgh…</p></div>
+  <p id="zoom-hint" role="status" hidden>Zoom in to see buildings.</p>
+  <p id="notice" role="status" hidden>No building data found. Build it with <code>make tiles</code>, then reload.</p>
+
+  <section id="panel" class="panel" aria-label="Map controls" hidden>
+    <header class="panel-header">
+      <h1>Edinburgh <span class="accent">presence</span></h1>
+      <div class="header-actions">
+        <button type="button" id="theme" class="icon-button" aria-label="Theme: follow system">
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="system"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="light"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" data-icon="dark"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>
+        </button>
+        <button type="button" id="minimise" class="icon-button" aria-expanded="true" aria-controls="panel-body" aria-label="Minimise controls">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div id="panel-body">
+      <div class="panel-tabs" role="tablist" aria-label="Panel sections">
+        <span class="tab-indicator" aria-hidden="true"></span>
+        <button type="button" role="tab" id="tab-explore" aria-controls="view-explore" aria-selected="true">Explore</button>
+        <button type="button" role="tab" id="tab-scenario" aria-controls="view-scenario" aria-selected="false" tabindex="-1">Scenario</button>
+        <button type="button" role="tab" id="tab-display" aria-controls="view-display" aria-selected="false" tabindex="-1">Display</button>
+        <button type="button" role="tab" id="tab-about" aria-controls="view-about" aria-selected="false" tabindex="-1">About</button>
+      </div>
+
+      <div class="tab-body">
+        <section id="view-explore" class="control-section" role="tabpanel" aria-labelledby="tab-explore" tabindex="0">
+          <div class="section-heading">
+            <h2>People by hour</h2>
+            <p>Estimated people active in the mapped area. Pick a day and drag the hour.</p>
+          </div>
+
+          <dl class="stats" aria-label="Totals for the mapped area, estimated">
+            <div class="stat stat-primary"><dt>Active now, estimate</dt><dd id="stat-people">…</dd></div>
+            <div class="stat"><dt>Residents at home</dt><dd id="stat-residents">…</dd></div>
+            <div class="stat"><dt>Workers present</dt><dd id="stat-workers">…</dd></div>
+          </dl>
+
+          <fieldset id="day-types" class="segmented">
+            <legend>Day type</legend>
+            <label><input type="radio" name="day" value="weekday"><span>Weekday</span></label>
+            <label><input type="radio" name="day" value="saturday"><span>Saturday</span></label>
+            <label><input type="radio" name="day" value="sunday"><span>Sunday</span></label>
+          </fieldset>
+
+          <div class="field">
+            <label for="hour">Hour of day <output id="hour-label" for="hour"></output></label>
+            <div class="row">
+              <input type="range" id="hour" min="0" max="23" step="1" value="9">
+              <button type="button" id="play" class="btn-primary" aria-pressed="false">Play</button>
+            </div>
+          </div>
+
+          <fieldset id="metrics" class="segmented">
+            <legend>Colour shows</legend>
+            <label><input type="radio" name="metric" value="density"><span>Per 1000 m²</span></label>
+            <label><input type="radio" name="metric" value="total"><span>Per building</span></label>
+          </fieldset>
+
+          <div id="legend-block">
+            <p id="legend-title"></p>
+            <ul id="legend"></ul>
+            <p id="legend-inferred"><i></i><span>Inferred buildings, not modelled</span></p>
+          </div>
+        </section>
+
+        <section id="view-scenario" class="control-section" role="tabpanel" aria-labelledby="tab-scenario" tabindex="0" hidden>
+          <div class="section-heading">
+            <h2>Festival scenario</h2>
+            <p>Edinburgh's August population is far above an average year. This multiplies the workers' share to explore that.</p>
+          </div>
+          <div class="card">
+            <div class="card-head"><span>Multiplier</span><output id="festival-label" for="festival"></output></div>
+            <input type="range" id="festival" min="1" max="1.5" step="0.05" value="1" aria-label="Festival multiplier">
+            <div class="range-labels"><span>Off ×1.00</span><span>×1.50</span></div>
+            <button type="button" id="festival-reset" class="btn-soft">Switch off</button>
+          </div>
+          <p class="hint">A manual multiplier on workers, not a measurement. Visitors and tourists are not modelled, so the totals stay lower than a real festival day.</p>
+        </section>
+
+        <section id="view-display" class="control-section" role="tabpanel" aria-labelledby="tab-display" tabindex="0" hidden>
+          <div class="section-heading">
+            <h2>Display</h2>
+            <p>Choose what to draw. Lighter settings help on slower machines.</p>
+          </div>
+
+          <div class="toggle-card">
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V8l7-4 7 4v12M9 20v-5h6v5M9 11h.01M15 11h.01"/></svg></span>
+              <span class="layer-text">Inferred buildings<small>Added where the maps leave empty ground</small></span>
+              <input type="checkbox" id="show-inferred" role="switch">
+            </label>
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M9 7l3-4 3 4M8 21h8M7 12h10"/></svg></span>
+              <span class="layer-text">Landmark towers<small>Spires and towers of a dozen landmarks</small></span>
+              <input type="checkbox" id="show-towers" role="switch">
+            </label>
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9"/></svg></span>
+              <span class="layer-text">Building heights<small>Off draws flat footprints, which is lighter</small></span>
+              <input type="checkbox" id="show-heights" role="switch">
+            </label>
+          </div>
+
+          <fieldset id="presets" class="preset-cards">
+            <legend>Performance</legend>
+            <label><input type="radio" name="preset" value="detailed"><span><strong>Detailed</strong><small id="preset-detailed"></small></span></label>
+            <label><input type="radio" name="preset" value="balanced"><span><strong>Balanced</strong><small id="preset-balanced"></small></span></label>
+            <label><input type="radio" name="preset" value="light"><span><strong>Light</strong><small id="preset-light"></small></span></label>
+          </fieldset>
+
+          <div class="card speed">
+            <div class="card-head"><span>Speed test</span><button type="button" id="speed-test" class="btn-soft">Test speed</button></div>
+            <p id="speed-result" class="hint" role="status" aria-live="polite">Scrubs the hour for a few seconds and recommends a setting.</p>
+          </div>
+        </section>
+
+        <section id="view-about" class="control-section" role="tabpanel" aria-labelledby="tab-about" tabindex="0" hidden>
+          <div class="section-heading">
+            <h2>About these numbers</h2>
+            <p>Every number is a modelled estimate. Nothing here is live or counted.</p>
+          </div>
+          <details class="disclosure" open>
+            <summary>What the numbers are</summary>
+            <ul class="about-list">
+              <li><strong>Template values.</strong> People per building are placeholders proportional to floor area, with a use class read from map tags. They are not census figures. Only the city totals are scaled to the 2022 census.</li>
+              <li><strong>Placeholder curves.</strong> The hourly shapes are drafted, not fitted to data, and are uncalibrated.</li>
+            </ul>
+          </details>
+          <details class="disclosure">
+            <summary>What is not modelled</summary>
+            <ul class="about-list">
+              <li>Visitors, tourists, pupils and students.</li>
+              <li>Public holidays and festival days, other than the manual festival multiplier.</li>
+              <li>Inferred buildings have no people estimate at all.</li>
+            </ul>
+          </details>
+          <details class="disclosure">
+            <summary>Heights and data</summary>
+            <ul class="about-list">
+              <li><strong>Heights.</strong> From LiDAR, with curated towers for a dozen landmarks. Accuracy is still being checked.</li>
+              <li><strong>Credits.</strong> Buildings: © OpenStreetMap contributors and Overture Maps. Heights: LiDAR for Scotland (OGL v3.0). Basemap: OpenFreeMap, © OpenMapTiles, data from OpenStreetMap.</li>
+            </ul>
+          </details>
+        </section>
+      </div>
+      <p id="status" class="status" data-status="loading"><i aria-hidden="true"></i><span>Loading buildings…</span></p>
+    </div>
+  </section>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

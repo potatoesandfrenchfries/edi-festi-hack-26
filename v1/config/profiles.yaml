@@ -1,0 +1,27 @@
+# Hourly presence curves (design section 7, step 2), written as parametric shapes and expanded to 24 values per
+# (use class, day type) by pipeline/presence.py. Each curve sits at `night` outside the working window and moves to `day[day type]`
+# inside it: it starts rising at `start`, reaches `day` after `ramp` hours, holds until `end`, then falls back over `ramp` hours.
+# `end` above 24 runs past midnight. Hours are local clock hours and each hour is evaluated at its mid-point.
+# STATUS: placeholder. The shapes are drafted in milestone M3 and the UI says they are uncalibrated until M4.
+
+status: placeholder                 # placeholder: becomes "calibrated" only if M4 clearly improves agreement
+day_types: [weekday, saturday, sunday]   # assumption: public holidays and festival days are not separate day types
+hours: 24                           # assumption: local clock hour, no daylight-saving handling
+
+residents:                          # f_res: share of a building's residents at home. `day` is the stay-home share while others are out
+  night: 1.0                        # placeholder: everyone is home overnight
+  start: 8.0                        # placeholder: people leave for work or study around 8 to 9
+  end: 17.0                         # placeholder: people return from about 17 to 18.5
+  ramp: 1.5                         # placeholder
+  day: {weekday: 0.45, saturday: 0.8, sunday: 0.9}   # placeholder: stay-home share s_o as a constant; the census daytime table is not used (spike S1 not run)
+
+workers:                            # f_work by use class: share of a building's workers present
+  residential: {night: 0.0, start: 9.0, end: 17.0, ramp: 1.0, day: {weekday: 1.0, saturday: 0.6, sunday: 0.6}}   # placeholder: home-based work
+  retail: {night: 0.0, start: 9.0, end: 18.0, ramp: 1.0, day: {weekday: 1.0, saturday: 1.0, sunday: 0.8}}       # placeholder: weekend factors from plan C27
+  office: {night: 0.0, start: 8.0, end: 17.0, ramp: 1.0, day: {weekday: 1.0, saturday: 0.2, sunday: 0.1}}       # placeholder: weekend factors from plan C27
+  hospitality: {night: 0.0, start: 11.0, end: 25.0, ramp: 1.5, day: {weekday: 1.0, saturday: 1.0, sunday: 0.8}} # placeholder: open late, closes about 02:00
+  education: {night: 0.0, start: 8.0, end: 16.0, ramp: 1.0, day: {weekday: 1.0, saturday: 0.05, sunday: 0.0}}   # placeholder: staff only, pupils and students are not modelled
+  civic: {night: 0.0, start: 9.0, end: 17.0, ramp: 1.0, day: {weekday: 1.0, saturday: 0.5, sunday: 0.3}}        # placeholder
+  industrial: {night: 0.0, start: 7.0, end: 16.0, ramp: 1.0, day: {weekday: 1.0, saturday: 0.2, sunday: 0.05}}  # placeholder
+  mixed: {night: 0.0, start: 8.0, end: 19.0, ramp: 1.5, day: {weekday: 1.0, saturday: 0.5, sunday: 0.3}}        # placeholder
+  unknown: {night: 0.0, start: 9.0, end: 17.0, ramp: 1.5, day: {weekday: 1.0, saturday: 0.4, sunday: 0.2}}     # placeholder

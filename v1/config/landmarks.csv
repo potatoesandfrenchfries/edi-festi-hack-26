@@ -1,0 +1,13 @@
+name,lon,lat,tip_height_m,body_height_m,ground_lon,ground_lat,source
+Scott Monument,-3.19322,55.952365,61.0,,,,Published height; see docs/height_reference.csv
+Melville Monument,-3.19315,55.95423,45.0,,,,Published height; see docs/height_reference.csv
+Nelson Monument,-3.18258,55.95433,32.0,,,,Published height; see docs/height_reference.csv
+Political Martyrs' Monument,-3.1858,55.9534,27.43,,,,Published height; see docs/height_reference.csv
+St Andrew's and St George's West Church,-3.195777,55.953921,51.0,,,,Published height; see docs/height_reference.csv
+The Hub,-3.194705,55.94889,74.0,,,,Published height; see docs/height_reference.csv
+Tron Kirk,-3.187825,55.95004,52.0,,,,Published height; see docs/height_reference.csv
+Balmoral Hotel,-3.189972,55.953045,52.0,,-3.19,55.9532,Published height; ground taken at Princes Street because the hotel stands above the Waverley cutting
+Buccleuch Free Church,-3.184817,55.944027,53.0,,,,Published height; see docs/height_reference.csv
+St Stephen's Church (Stockbridge),-3.2035,55.9586,49.38,,,,Published height; see docs/height_reference.csv
+St Giles' Cathedral,-3.190833,55.949444,,,,,No published height checked; tip taken from the LiDAR peak
+Edinburgh City Chambers,-3.1904,55.9503,,,,,No published height checked; tip taken from the LiDAR peak

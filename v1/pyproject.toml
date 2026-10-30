@@ -1,0 +1,28 @@
+[project]
+name = "edinburgh-presence"
+version = "0.1.0"
+description = "Modelled building-level presence for Edinburgh, by hour and day type"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "duckdb",
+    "rasterio",
+    "pyproj",
+    "shapely",
+    "pyarrow",
+    "requests",
+    "openpyxl",
+    "pyyaml",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff>=0.17.3",
+]
+
+[tool.ruff]
+line-length = 130
+target-version = "py312"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

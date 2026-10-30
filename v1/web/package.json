@@ -1,0 +1,29 @@
+{
+  "name": "edinburgh-presence-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "maplibre-gl": "6.15.0",
+    "pmtiles": "4.5.0"
+  },
+  "devDependencies": {
+    "@maplibre/maplibre-gl-style-spec": "26.5.0",
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.19.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,93 @@
+# Model parameters. Every value carries an origin tag in its comment: placeholder, literature, calibrated or assumption.
+# Nothing here has been calibrated yet (calibration is milestone M4).
+
+floor_height_m: 3.2                 # placeholder: typical storey height used to turn height into floors_est
+mixed_use_residential_share: 0.5    # assumption: share of a mixed-use building's floor area treated as residential
+
+heights:
+  footprint_percentile: 99          # assumption: DSM percentile used as roof level. p100 picks up construction cranes (111 m on one block), p95 under-reads spires; see docs/height_validation.md
+  ground_percentile: 10             # placeholder: DTM percentile on the footprint perimeter used as the ground level
+  perimeter_buffer_m: 3.0           # placeholder: width of the ring around a footprint sampled for ground level
+  default_height_m: 6.0             # placeholder: height used only when no source gives one (height_src = default)
+  disagreement_abs_m: 3.0           # placeholder: tag-versus-LiDAR difference above which a building is flagged
+  disagreement_rel: 0.25            # placeholder: relative difference that must also be exceeded to flag it
+  on_disagreement: prefer_lidar     # assumption: D7 is tag-first, but OSM tags that disagree with LiDAR were wrong in 4 of 4 landmark checks; "keep_tag" restores literal D7
+  min_footprint_m2: 4.0             # placeholder: smaller footprints (sheds, kiosks) are dropped in stage 01
+  min_lidar_height_m: 2.0           # placeholder: a LiDAR height below this is treated as invalid (ground-level noise)
+  min_lidar_pixels: 12              # placeholder: fewer 0.5 m pixels inside a footprint than this makes LiDAR unreliable
+  min_valid_fraction: 0.8           # placeholder: share of footprint pixels that must hold valid DSM data
+  steep_range_m: 3.0                # placeholder: ground-level spread around a footprint above which terrain counts as steep
+
+validation:                         # height validation (docs/height_validation.md)
+  tolerance_abs_m: 3.0              # placeholder: a height passes if within this many metres of the reference...
+  tolerance_rel: 0.15               # placeholder: ...or within this share of the reference, whichever is larger
+  required_share: 0.8               # placeholder: share of reference buildings that must pass
+
+sensitivity:                        # bounds for the res_lo/res_hi/work_lo/work_hi range run (milestone M5)
+  floor_height_m: [2.8, 3.6]        # placeholder: low and high floor height
+  use_weight_scale: [0.75, 1.25]    # placeholder: multiplier applied to every use weight
+
+seasonality:
+  festival_scalar: 1.0              # placeholder: starting value of the manual festival multiplier on worker presence; 1.0 means off
+  festival_min: 1.0                 # placeholder: lowest multiplier the slider offers (plan C35)
+  festival_max: 1.5                 # placeholder: highest multiplier the slider offers (plan C35). A manual scenario, not a measurement
+  festival_step: 0.05               # placeholder: slider step
+
+template_values:                    # stand-in building values for the visualisation template; replaced by the census allocation (M2)
+  residents_per_m2: 0.01            # assumption: residents per m2 of residential floor area (about 100 m2 each; floors_est is taken from roof height, so storeys are overstated). Gives 494,392 residents over the council area against 491,034 in Census 2022
+  workers_per_m2: 0.01376           # assumption: workers per m2 of floor area at use weight 1.0 (about 73 m2 each), scaled so the council-area total is the Census 2022 workplace population (284,009, Table 1). Only the total is matched; where the workers sit is still floor area times use weight
+
+colour_scale:                       # fixed break points shared by every hour (plan C25), so the city visibly fills and empties
+  density_breaks: [2, 4, 7, 12, 18]   # placeholder: people per 1000 m2 of floor area; square-root-like steps
+  total_breaks: [3, 10, 30, 100, 300]     # placeholder: people per building
+
+landmarks:                          # stepped towers and spires for the curated list in config/landmarks.csv
+  body_percentile: 75               # assumption: percentile of footprint heights used as the main body height
+  steps: 4                          # assumption: number of nested tower levels between the body and the tip
+  margin_m: 3.0                     # placeholder: surface must rise this far above the body to count as a tower
+  min_part_m2: 0.5                  # placeholder: smaller tower parts are dropped (a thin spire tip is under 1 m2)
+  simplify_m: 0.3                   # placeholder: polygon simplification tolerance
+
+street_half_width_m:                # width of the ground a street occupies on each side of its OSM centre line, pavements included
+  motorway: 11                      # placeholder
+  trunk: 10                         # placeholder
+  primary: 10                       # placeholder
+  secondary: 9                      # placeholder
+  tertiary: 8                       # placeholder
+  unclassified: 7                   # placeholder
+  residential: 7                    # placeholder
+  living_street: 6                  # placeholder
+  pedestrian: 5                     # placeholder
+  service: 4.5                      # placeholder
+  cycleway: 2.5                     # placeholder
+  footway: 2                        # placeholder
+  path: 2                           # placeholder
+  steps: 2                          # placeholder
+  track: 3                          # placeholder
+  default: 3                        # placeholder: any other highway type
+rail_half_width_m: 4                # placeholder: railway centre line to edge, for lines without an area polygon
+waterway_half_width_m: 3            # placeholder: waterway centre line to bank, for lines without an area polygon
+
+infill:                             # buildings inferred where OSM and the building footprints leave ground empty (stage 02b)
+  enabled: true                     # assumption: the owner asked for empty regions to be filled; set false to drop all inferred buildings
+  fill_open_ground: true            # assumption: tier 2, standard frontage buildings on flat bare ground; false keeps only LiDAR-detected structures
+  min_blob_m2: 150                  # placeholder: smaller empty patches are ignored
+  opening_m: 5.0                    # placeholder: empty strips narrower than twice this are pavement or verge, not a plot
+  building_clearance_m: 1.0         # placeholder: gap kept between inferred and mapped buildings
+  max_slope_pct: 25                 # placeholder: steeper ground is left empty (rock faces, embankments)
+  structure_min_height_m: 2.5       # placeholder: surface this far above ground counts as something standing there
+  vegetation_roughness: 1.0         # placeholder: a standing surface rougher than this (local std in m) is trees, not a roof
+  flat_max_height_m: 1.5            # placeholder: surface below this above ground counts as bare ground
+  structure_min_m2: 40              # placeholder: smallest LiDAR-detected structure kept
+  structure_opening_m: 1.0          # placeholder: structures thinner than twice this (scaffolding, masts) are dropped
+  simplify_m: 0.5                   # placeholder: polygon simplification tolerance for LiDAR-detected structures
+  frontage_depth_m: 12.0            # placeholder: depth of a standard frontage building measured from the street
+  plot_width_m: 12.0                # placeholder: width of one plot along the street
+  party_gap_m: 0.4                  # placeholder: gap between neighbouring plots
+  min_plot_m2: 30                   # placeholder: smaller plots are dropped
+  neighbour_reach_m: 30             # placeholder: a plot must lie within this distance of a mapped building, so lone patches stay empty
+  neighbour_radius_m: 60            # placeholder: mapped buildings within this distance set the height of inferred ones
+  neighbour_min_height_m: 4.0       # placeholder: mapped buildings lower than this (sheds, kiosks) are not used to set inferred heights
+  min_neighbours: 3                 # placeholder: fewer mapped neighbours than this falls back to the area-wide median
+  min_storeys: 3                    # placeholder: lower bound on inferred height, in storeys of floor_height_m
+  max_storeys: 7                    # placeholder: upper bound on inferred height, in storeys of floor_height_m

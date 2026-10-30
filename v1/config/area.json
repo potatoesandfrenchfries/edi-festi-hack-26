@@ -1,0 +1,37 @@
+{
+  "_comment": "Pilot area: Old Town and New Town. PROPOSED in PLAN.md C14, awaiting owner confirmation. bbox_bng is [min_e, min_n, max_e, max_n] in EPSG:27700; bbox_wgs84 is [west, south, east, north] derived from it.",
+  "pilot": {
+    "name": "Old Town and New Town",
+    "bbox_bng": [
+      324600,
+      672900,
+      327000,
+      675000
+    ],
+    "bbox_wgs84": [
+      -3.20876,
+      55.94321,
+      -3.17091,
+      55.96244
+    ],
+    "lidar_buffer_m": 100
+  },
+  "full": {
+    "name": "City of Edinburgh council area",
+    "council_area_code": "S12000036",
+    "bbox_bng": [
+      309500,
+      659200,
+      332800,
+      680700
+    ],
+    "bbox_wgs84": [
+      -3.45306,
+      55.81754,
+      -3.0741,
+      56.01449
+    ],
+    "lidar_buffer_m": 100,
+    "_comment": "bbox_bng is the council area's extent rounded out to 100 m; bbox_wgs84 is the envelope of its four corners. Work tiles are listed in config/full_tiles.json."
+  }
+}

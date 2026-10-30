@@ -1,0 +1,16 @@
+# data is reproducible from the pipeline and never committed
+data/
+.venv/
+__pycache__/
+.pytest_cache/
+node_modules/
+dist/
+test-results/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+# built tiles are copied here for the dev server
+web/public/data/

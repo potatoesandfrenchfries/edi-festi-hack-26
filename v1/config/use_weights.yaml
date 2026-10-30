@@ -1,0 +1,13 @@
+# Relative worker density per square metre of floor area, by use class (design section 7, step 1).
+# Only ratios within one output area matter, because the output area's workplace total is fixed by the census.
+# All values are placeholders until a better source or calibration (M4) replaces them.
+
+residential: 0.05    # placeholder: home-based workers only
+retail: 0.6          # placeholder
+office: 1.0          # placeholder: reference class
+hospitality: 0.6     # placeholder
+education: 0.8       # placeholder: staff only; pupils and students are not in the workplace table
+civic: 0.8           # placeholder
+industrial: 0.4      # placeholder
+mixed: 0.7           # placeholder
+unknown: 0.5         # placeholder

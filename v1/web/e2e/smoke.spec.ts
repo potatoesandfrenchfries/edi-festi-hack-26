@@ -7,6 +7,7 @@ type Map = {
   areTilesLoaded(): boolean;
   getStyle(): { sources: object };
   queryRenderedFeatures(geometry?: undefined, options?: { layers: string[] }): { properties: { height_m: number }; geometry: { type: string; coordinates: number[][][] } }[];
+  getLayer(id: string): object | undefined;
   getPaintProperty(layer: string, name: string): unknown;
   getLayoutProperty(layer: string, name: string): unknown;
   jumpTo(options: object): void;
@@ -18,6 +19,7 @@ const hasTiles = existsSync(new URL('../public/data/buildings.pmtiles', import.m
 const hasBuses = existsSync(new URL('../public/data/lothian.json', import.meta.url));
 const hasCars = existsSync(new URL('../public/data/roads.json', import.meta.url));
 const hasEconomics = existsSync(new URL('../public/data/economics.json', import.meta.url));
+const hasClosures = existsSync(new URL('../public/data/closures.json', import.meta.url));
 
 function collectErrors(page: import('@playwright/test').Page) {
   const errors: string[] = [];
@@ -141,6 +143,26 @@ test.describe('with road data', () => {
   });
 });
 
+test.describe('with festival closures', () => {
+  test.skip(!hasTiles || !hasCars || !hasClosures, 'run `make tiles`, `make cars` and `make closures` first');
+
+  test('offers the Fringe street closures, says which Fringe day they come from, and remembers the switch', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.getByRole('tab', { name: 'Scenario' }).click();
+    await expect(page.locator('#festival-closures')).toBeChecked();
+    await expect(page.locator('#closures-info')).toContainText(/Closures of \w+day \d+ August 2026, a typical Fringe/);
+    const hasLayer = () =>
+      page.evaluate(() => Boolean((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayer('closures-line')));
+    expect(await hasLayer()).toBe(true);
+    await page.locator('#festival-closures').uncheck();
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('edinburgh-presence-settings') ?? '{}'));
+    expect(saved).toMatchObject({ festivalClosures: false });
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe('with traffic impact', () => {
   test.skip(!hasTiles || !hasBuses || !hasCars || !hasEconomics, 'run `make tiles`, `make buses`, `make cars` and `make economics` first');
 
@@ -167,7 +189,7 @@ test.describe('with traffic impact', () => {
     await expect(page.locator('#impact-commentary')).toContainText('fewer cars');
 
     await page.locator('#impact-restart').click();
-    await expect(page.locator('#impact-clock')).toHaveText(/^06:0\d$/);
+    await expect(page.locator('#impact-clock')).toHaveText(/^\d\d:0\d$/); // the start of the day, wherever the scenario starts it
     await page.getByRole('tab', { name: 'Scenario' }).click();
     await page.locator('#bus-frequency-reset').click();
     await expect(page.locator('#bus-frequency-label')).toHaveText('×1.00');

@@ -76,6 +76,7 @@ export function initControls(
   const coupling = $<HTMLInputElement>('bus-car-coupling');
   const busFrequency = $<HTMLInputElement>('bus-frequency');
   const carDemand = $<HTMLInputElement>('car-demand');
+  const festivalClosures = $<HTMLInputElement>('festival-closures');
   const speedTest = $<HTMLButtonElement>('speed-test');
   const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
   const indicator = panel.querySelector<HTMLElement>('.tab-indicator')!;
@@ -113,6 +114,7 @@ export function initControls(
     $('car-demand-label').textContent = `×${settings.carDemand.toFixed(2)}`;
     carDemand.setAttribute('aria-valuetext', `${settings.carDemand.toFixed(2)} times a normal day`);
     carDemand.disabled = showCars.disabled;
+    festivalClosures.checked = settings.festivalClosures;
     $('car-demand-reset').hidden = settings.carDemand === normal.carDemand;
     showInferred.checked = settings.showInferred;
     showTowers.checked = settings.showTowers;
@@ -184,6 +186,7 @@ export function initControls(
   $('bus-frequency-reset').addEventListener('click', () => update({ busFrequency: normal.busFrequency }));
   carDemand.addEventListener('input', () => update({ carDemand: Number(carDemand.value) }));
   $('car-demand-reset').addEventListener('click', () => update({ carDemand: normal.carDemand }));
+  festivalClosures.addEventListener('change', () => update({ festivalClosures: festivalClosures.checked }));
   $('impact-restart').addEventListener('click', () => events.restartDay());
   showInferred.addEventListener('change', () => update({ showInferred: showInferred.checked }));
   showTowers.addEventListener('change', () => update({ showTowers: showTowers.checked }));
@@ -264,6 +267,14 @@ export function initControls(
         ? 'Lothian routes on a regular headway. A simulation, not live positions.'
         : 'Not built. Run make buses, then reload.';
       render();
+    },
+    /** Without the closures file or the road graph (`make closures`, `make cars` not run) the closures switch is disabled and says why. */
+    setClosuresAvailable(available: boolean, info = '') {
+      festivalClosures.disabled = !available;
+      $('festival-closures-hint').textContent = available
+        ? 'Streets the council closes to vehicles in August, at its hours, on a typical Fringe day. Applies to the simulated cars.'
+        : 'Needs both the car roads and the closures data. Run make cars and make closures, then reload.';
+      $('closures-info').textContent = available ? info : '';
     },
     /** The Impact tab: the day's running totals and the generated sentences about them. */
     setImpact(view: ImpactView) {

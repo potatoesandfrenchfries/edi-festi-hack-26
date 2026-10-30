@@ -38,7 +38,7 @@ The pilot covers the Old Town and New Town (5 km²). The whole City of Edinburgh
 make city AREA=full     # fetch (several GB, cached and resumable per tile), footprints, heights, infill, tiles
 ```
 
-`AREA=full` writes to `data/interim/full/` and `data/out/full/`, so the pilot outputs are never overwritten. Both builds copy their tiles to `web/public/data/buildings.pmtiles`, so whichever you built last is what `make web-dev` shows (run `make tiles` for the pilot again to switch back). Buildings are drawn from zoom 13. LiDAR comes from Phase 5 for every tile. The tile list is `config/full_tiles.json` (regenerate with `uv run python -m pipeline.area_tiles`). A tile also reads a 100 m LiDAR buffer, and an empty-ground patch for the infill belongs to the tile that holds its centre, so nothing is cut or drawn twice at tile edges. The 2.5 km tile list covers slightly more than the council boundary, so some buildings just outside it are included.
+`AREA=full` writes to `data/interim/full/` and `data/out/full/`, so the pilot outputs are never overwritten. Both builds can copy their tiles to `web/public/data/buildings.pmtiles` (and `profiles.json`, which must match them), and `web/public/data/served_area.txt` says which one is there. A full build always replaces the copy; a pilot build leaves a full-city copy alone and says so, so the map no longer shrinks back to the pilot when someone rebuilds it. Run `SERVE_PILOT=1 make tiles` to show the pilot again. Buildings are drawn from zoom 13. LiDAR comes from Phase 5 for every tile. The tile list is `config/full_tiles.json` (regenerate with `uv run python -m pipeline.area_tiles`). A tile also reads a 100 m LiDAR buffer, and an empty-ground patch for the infill belongs to the tile that holds its centre, so nothing is cut or drawn twice at tile edges. The 2.5 km tile list covers slightly more than the council boundary, so some buildings just outside it are included.
 
 `make tiles` also writes `web/public/data/profiles.json` (hourly curves, festival range and colour break points for the web app) and `data/out/oracle.json` (20 sampled buildings with the values the pipeline expects, which the web unit tests check the client against).
 
@@ -86,6 +86,14 @@ Two honest limits. The pilot area is the only part with cars (`AREA=full make ca
 ```sh
 make economics          # writes web/public/data/economics.json
 ```
+
+**Fringe street closures** (Scenario tab, on by default) close the Old Town streets the council bans vehicles from in August, at its hours (for example High Street 10:30 to 24:00 on weekdays and 10:30 to 21:00 at weekends), using one typical Fringe weekday, Saturday or Sunday chosen by the Explore tab's day type. The cars drive round them; closed streets are drawn as red dashed lines and named in the Impact commentary. Build the data once (it reads `../closures/out`):
+
+```sh
+make closures           # writes web/public/data/closures.json
+```
+
+Only cars are affected: buses still drive the timetable's shapes through closed streets (Lothian's real diversions are not modelled), and a closure only shows where its street is in the car road graph (the map says how many are not). Hours are the council's, hand-transcribed; short-term event closures are not included.
 
 ## Configuration
 

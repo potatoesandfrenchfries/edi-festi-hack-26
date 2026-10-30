@@ -13,6 +13,13 @@
   <p id="profile-notice" role="note" hidden>Uncalibrated placeholder profiles. Building values are template estimates from floor area, not census figures. Visitors and tourists are not modelled.</p>
   <div id="loading" role="status" aria-live="polite"><span class="spinner" aria-hidden="true"></span><p>Loading Edinburgh…</p></div>
   <p id="zoom-hint" role="status" hidden>Zoom in to see buildings.</p>
+  <aside id="legend" aria-label="Building colours" hidden>
+    <ul>
+      <li><i data-legend="venue" aria-hidden="true"></i>Festival venues in August</li>
+      <li><i data-legend="public" aria-hidden="true"></i>Public places with high footfall</li>
+      <li><i data-legend="standard" aria-hidden="true"></i>Other buildings</li>
+    </ul>
+  </aside>
   <p id="notice" role="status" hidden>No building data found. Build it with <code>make tiles</code>, then reload.</p>
 
   <section id="panel" class="panel" aria-label="Map controls" hidden>
@@ -98,6 +105,14 @@
             <div class="range-labels"><span>Quieter ×0.25</span><span>×1.50 busier</span></div>
             <button type="button" id="car-demand-reset" class="btn-soft">Back to a normal day</button>
           </div>
+          <div class="toggle-card">
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 8v10M20 8v10M7 8l4 4M13 8l4 4M3 18h4M17 18h4"/></svg></span>
+              <span class="layer-text">Fringe street closures<small id="festival-closures-hint">Streets the council closes to vehicles in August, at its hours, on a typical Fringe day. Applies to the simulated cars.</small></span>
+              <input type="checkbox" id="festival-closures" role="switch">
+            </label>
+          </div>
+          <p id="closures-info" class="hint" role="status" aria-live="off"></p>
           <p id="traffic-scenario-hint" class="hint">Frequency scales the Lothian timetable. Car traffic scales a placeholder daily profile that peaks at 08:00 and 17:00. Changing one does not change the other.</p>
         </section>
 

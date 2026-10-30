@@ -5,6 +5,7 @@ import './styles.css';
 import { BUSES_LAYER, BusSimulation, describeBus, loadBusData, type BusData } from './buses';
 import { TENT_LAYER, TentLayer } from './tent';
 import { CarSimulation, loadCarData } from './cars';
+import { ClosureLayer, ClosureSchedule, loadClosures } from './closures';
 import { BusCarCoupling } from './coupling';
 import {
   addBuildings, BUILDINGS_LAYER, BUILDINGS_SOURCE, INFERRED_LAYER, PARTS_LAYER, registerPmtiles,
@@ -12,19 +13,29 @@ import {
 } from './buildings';
 import { PILOT_CENTRE, PILOT_VIEW, basemapStyleUrl } from './config';
 import { initControls } from './controls';
+import { dayTypeOf, festivalDates, loadAccommodation, loadDemand, slotAt, type Accommodation, type Demand } from './demand';
+import { FestivalLayer, surgeFor } from './festival-layer';
+import { FestivalPanel } from './festival-panel';
 import { loadEconomics, type Economics } from './impact';
 import { ImpactTracker } from './impact-tracker';
 import { PRESETS, SPEED_TEST_SECONDS, pixelRatioFor, speedAdvice } from './display';
 import { measureScrub } from './perf';
-import { describeBuilding, describeInferred, formatCount, showPopup, type BuildingProps } from './popup';
+import { describeBuilding, describeInferred, formatCount, showPopup, type BuildingProps, type PopupState } from './popup';
 import { totalsAt, type Profiles } from './presence';
+import { departuresPerHour } from './scenario';
+import { loadSweep, type SweepFile } from './scenario-view';
+import { loadTransport, planSlot, tripVenues, type Transport } from './trip-demand';
+import { emptyRates } from './trips';
 import { loadSettings, saveSettings, type Settings, type Theme } from './settings';
+import { renderLegend } from './legend';
 import { blankStyle } from './style';
 
 maplibregl.setWorkerUrl(workerUrl);
 registerPmtiles();
 
 const PROFILES_PATH = 'data/profiles.json';
+/** The simulated day starts here when festival traffic is on, so the evening's audiences arrive within a minute or two of watching. */
+const FESTIVAL_DAY_START_S = 17 * 3600;
 const PLAY_STEP_MS = 700;
 const PLAY_STEP_REDUCED_MS = 1800; // reduced motion: slower, discrete steps
 
@@ -70,6 +81,12 @@ async function main() {
   // Likewise optional: without `make cars` there are no cars and their switch says so.
   const carData = await loadCarData();
   const cars = carData ? new CarSimulation(carData, reducedMotion.matches ? 1000 : 100) : null;
+  // Also optional (`make closures`): streets closed to vehicles on a Fringe day. They only matter to the cars, so need the road graph.
+  const closureData = await loadClosures();
+  const closures = carData && closureData ? new ClosureSchedule(closureData, carData) : null;
+  // Also optional: the ticket-driven festival layer (`make demand accommodation tiles`), its travel assumptions (`make transport`) and the
+  // sweep of configurations (`npm run scenarios`). Each is used if present and the page works without it.
+  const festival = { demand: await loadDemand(), accommodation: await loadAccommodation(), transport: await loadTransport(), sweep: await loadSweep() };
 
   const map = new maplibregl.Map({
     container: 'map',
@@ -106,7 +123,7 @@ async function main() {
       hideLoading();
       return;
     }
-    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed, buses, busData, cars, economics);
+    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed, buses, busData, cars, economics, closures, festival);
     app.install();
     state.buildings = true;
     // The first frame with the buildings drawn. The buses only start moving after this: they keep the map from ever going idle.
@@ -136,7 +153,10 @@ function createApp(
   busData: BusData | null,
   cars: CarSimulation | null,
   economics: Economics | null,
+  closures: ClosureSchedule | null,
+  festival: { demand: Demand | null; accommodation: Accommodation | null; transport: Transport | null; sweep: SweepFile | null },
 ) {
+  const closureLayer = new ClosureLayer();
   // Buses and cars slow each other down; only when both exist (see coupling.ts).
   const coupling = buses && cars ? new BusCarCoupling(buses, cars) : null;
   let settings = initial;
@@ -157,8 +177,11 @@ function createApp(
       applyStyle(settings.theme); // 'style.load' then calls install(), which paints again
       return;
     }
+    const legend = document.getElementById('legend');
+    if (legend) renderLegend(legend, isDark());
     renderHeadline();
     if (!hasLayers()) return;
+    renderFestival();
     applyDisplay();
   }
   // Layer switches and the performance preset. Run on every paint, so they survive a style reload.
@@ -180,11 +203,22 @@ function createApp(
       busesOn: buses !== null && settings.showBuses,
       busFrequency: settings.busFrequency,
       carDemand: settings.carDemand,
+      day: settings.day,
+      closuresOn: settings.festivalClosures,
     });
+    if (closures) controls.setClosuresAvailable(true, closuresInfo());
     setBuildingsMinZoom(map, preset.minZoom);
     const wanted = pixelRatioFor(settings.preset, window.devicePixelRatio || 1);
     if (wanted !== pixelRatio) map.setPixelRatio((pixelRatio = wanted));
     updateZoomHint();
+  }
+  /** Which Fringe day the closures come from, and how many of them are on streets the cars can drive. */
+  function closuresInfo(): string {
+    if (!closures) return '';
+    const date = new Date(`${closures.date(settings.day)}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const missing = closures.unmatched(settings.day);
+    const note = missing.length ? ` ${missing.length} (${missing.map((c) => c.name).join(', ')}) are not on streets in the car roads, so they change nothing here.` : '';
+    return `Closures of ${date}, a typical Fringe ${settings.day}.${note}`;
   }
   // Several input events in one frame (a fast scrub) cost one repaint.
   const schedule = () => {
@@ -216,7 +250,7 @@ function createApp(
         return speedAdvice(result.medianFps, settings.preset).text;
       },
       restartDay() {
-        tracker?.restart();
+        tracker?.restart(panel ? FESTIVAL_DAY_START_S : undefined);
         if (tracker) controls.setImpact(tracker.view());
       },
     },
@@ -229,12 +263,16 @@ function createApp(
     tracker = new ImpactTracker(economics, {
       busRates: () => buses?.rates() ?? null,
       setCarDemand: (fraction) => cars?.setDemand(fraction),
+      setClosedEdges: (edges) => {
+        cars?.setClosedEdges(edges);
+        closureLayer.setStreets(closures ? closures.streets(edges) : null);
+      },
       speed: () => settings.busSpeed,
       hidden: () => document.hidden,
       now: () => performance.now(),
-    });
+    }, closures);
     const impact = tracker;
-    impact.setScenario({ carsOn: cars !== null && settings.showCars, busesOn: buses !== null && settings.showBuses, busFrequency: settings.busFrequency, carDemand: settings.carDemand });
+    impact.setScenario({ carsOn: cars !== null && settings.showCars, busesOn: buses !== null && settings.showBuses, busFrequency: settings.busFrequency, carDemand: settings.carDemand, day: settings.day, closuresOn: settings.festivalClosures });
     controls.setImpact(impact.view());
     window.setInterval(() => {
       impact.tick();
@@ -248,11 +286,72 @@ function createApp(
   if (buses) window.setInterval(() => controls.setBusStats(settings.showBuses ? buses.trafficStats() : null), 1000);
   reducedMotion.addEventListener('change', () => buses?.setDrawInterval(reducedMotion.matches ? 1000 : 33));
   controls.setCarsAvailable(cars !== null);
+  controls.setClosuresAvailable(closures !== null);
+
+  // The festival: buildings shaded by the ticket-driven surge, and cars that drive to the venues the tickets name.
+  const festivalLayer = festival.demand ? new FestivalLayer(festival.demand, festival.accommodation) : null;
+  const dates = festival.demand ? festivalDates(festival.demand) : [];
+  const departures = festival.transport ? departuresPerHour(busData, festival.transport) : 0;
+  const venueCount = festival.demand ? tripVenues(festival.demand).length : 0;
+  let lastTrips = '';
+  /** Tells the car worker how many festival cars to start at each venue for the current slot of the simulated day. */
+  function feedTrips() {
+    if (!cars || !festival.demand || !festival.transport || !panel) return;
+    const state = panel.state();
+    const on = state.trips && settings.showCars;
+    const date = panel.currentDate();
+    const slot = slotAt(festival.demand, tracker?.ledger.clock ?? FESTIVAL_DAY_START_S);
+    const key = [on, date, slot, settings.busFrequency, state.parkAndRide].join('|');
+    if (key === lastTrips) return;
+    lastTrips = key;
+    const levers = { busFrequency: settings.busFrequency, parkAndRide: state.parkAndRide, closures: settings.festivalClosures };
+    cars.setTripRates(on ? planSlot(festival.demand, festival.transport, date, slot, levers, departures).rates : emptyRates(venueCount));
+  }
+  /** Shades the buildings for the chosen date and hour, shows the surge figures, and keeps the day type in step with the date. */
+  function renderFestival() {
+    if (!panel || !festivalLayer) return;
+    const wantedDay = dayTypeOf(panel.currentDate());
+    // The date decides the day type; the day-type buttons are hidden, so the click comes from here (it reaches the controls as usual).
+    if (settings.day !== wantedDay) document.querySelector<HTMLInputElement>(`input[name="day"][value="${wantedDay}"]`)?.click();
+    festivalLayer.setVisible(panel.state().showSurge);
+    festivalLayer.update({ date: panel.currentDate(), hour: settings.hour }, isDark());
+    panel.setSurge(festivalLayer.headline());
+  }
+  const panel =
+    festival.demand && dates.length > 0
+      ? new FestivalPanel(dates, festival.transport?.levers.park_and_ride ?? { min: 0, max: 0.6, step: 0.15 }, festival.sweep, cars !== null && festival.transport !== null, {
+          change() {
+            lastTrips = '';
+            schedule();
+            feedTrips();
+          },
+          apply(levers) {
+            // Drive the existing sliders and switch, so the settings, the buses and the closures all follow as if the user had moved them.
+            const frequency = document.getElementById('bus-frequency') as HTMLInputElement;
+            frequency.value = String(levers.busFrequency);
+            frequency.dispatchEvent(new Event('input', { bubbles: true }));
+            const closing = document.getElementById('festival-closures') as HTMLInputElement;
+            if (closing.checked !== levers.closures) closing.click();
+            const index = festival.sweep ? dates.indexOf(festival.sweep.date) : -1;
+            panel?.set({ parkAndRide: levers.parkAndRide, ...(index >= 0 ? { dateIndex: index } : {}) });
+            lastTrips = '';
+            schedule();
+            feedTrips();
+          },
+        })
+      : null;
+  if (cars && festival.demand) cars.setTripVenues(tripVenues(festival.demand));
+  if (panel && cars && tracker) {
+    tracker.restart(FESTIVAL_DAY_START_S);
+    controls.setImpact(tracker.view());
+  }
+  if (panel) window.setInterval(feedTrips, 1000);
   coupling?.start();
   if (cars) {
     cars.onStats = (stats) => {
       controls.setCarStats(settings.showCars ? stats : null);
       tracker?.onCarStats(settings.showCars ? stats : null);
+      if (stats?.trips) panel?.setTripInfo(`${stats.trips.active} festival cars on the road · ${stats.trips.arrived} have reached a venue · ${stats.trips.left} have left one${stats.trips.abandoned ? ` · ${stats.trips.abandoned} gave up` : ''}${stats.trips.walkMetres > 0 ? ` · drivers walked ${Math.round(stats.trips.walkMetres / Math.max(stats.trips.arrived, 1))} m on average` : ''}.`);
     };
   }
   reducedMotion.addEventListener('change', () => cars?.setFrameInterval(reducedMotion.matches ? 1000 : 100));
@@ -292,12 +391,17 @@ function createApp(
     }
     const feature = hit(event);
     if (!feature) return;
-    const popupState = { day: settings.day, hour: settings.hour, festival: settings.festival };
+    const popupState: PopupState = { day: settings.day, hour: settings.hour, festival: settings.festival };
     if (feature.layer.id === INFERRED_LAYER) return void showPopup(map, event.lngLat, describeInferred(feature.properties));
     let props = feature.properties as BuildingProps & { parent_id?: string };
     if (feature.layer.id === PARTS_LAYER && props.parent_id) {
       const parent = map.querySourceFeatures(BUILDINGS_SOURCE, { sourceLayer: 'buildings', filter: ['==', ['get', 'id'], props.parent_id] })[0];
       if (parent) props = parent.properties as BuildingProps;
+    }
+    if (festival.demand && panel) {
+      const date = panel.currentDate();
+      const s = surgeFor(props, festival.accommodation, festival.demand, { date, hour: settings.hour });
+      popupState.surge = { ...s, date };
     }
     showPopup(map, event.lngLat, describeBuilding(props, popupState, profiles));
   });
@@ -312,6 +416,8 @@ function createApp(
     /** Adds the building layers to the current style and paints them. Called on every 'style.load'. */
     install() {
       addBuildings(map, tilesUrl, isDark());
+      festivalLayer?.install(map, isDark());
+      closureLayer.install(map); // under the cars
       cars?.install(map, isDark()); // before the buses, so cars are drawn under them
       buses?.install(map, isDark());
       if (!map.getLayer(TENT_LAYER)) map.addLayer(new TentLayer(isDark()));

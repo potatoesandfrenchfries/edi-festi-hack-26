@@ -49,6 +49,16 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #banner, #profile-notice, #notice, #zoom-hint { left: calc(414px + (100vw - 414px) / 2); max-width: calc(100vw - 414px - 24px); }
 }
 
+/* Key to the building colours, bottom left of the map area (above the bottom sheet on a phone). */
+#legend {
+  position: absolute; z-index: 2; bottom: 28px; left: 20px; padding: 10px 14px; border-radius: 16px;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-size: 12px; font-weight: 600;
+}
+#legend ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+#legend li { display: flex; align-items: center; gap: 9px; }
+#legend i { flex: none; width: 14px; height: 14px; border-radius: 4px; background: var(--swatch); box-shadow: inset 0 0 0 1px #00000026; }
+@media (min-width: 761px) { #legend { left: 414px; } }
+
 /* Panel */
 .panel {
   position: absolute; z-index: 3; top: 20px; left: 20px; width: 374px; max-width: calc(100vw - 40px); max-height: calc(100dvh - 40px);
@@ -210,9 +220,18 @@ input[type='range'] { flex: 1; width: 100%; min-height: 26px; accent-color: var(
   .section-heading h2 { font-size: 20px; }
   #banner { font-size: 12px; padding: 7px 14px; }
   #profile-notice { top: 48px; width: calc(100vw - 24px); font-size: 10px; }
+  #legend { left: 12px; bottom: calc(var(--panel-h, 0px) + 22px); }
   .maplibregl-ctrl-bottom-right { bottom: calc(var(--panel-h, 0px) + 22px); }
 }
 @media (max-height: 550px) and (min-width: 761px) { .panel { top: 12px; left: 12px; max-height: calc(100dvh - 24px); } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* The scenario sweep's results (festival-panel.ts). */
+.scenario-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+.scenario-table th { text-align: left; font-weight: 600; font-size: 11px; padding: 4px 6px; }
+.scenario-table td { padding: 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.scenario-table tr.is-best td { font-weight: 600; background: var(--soft); }
+.scenario-table .btn-soft { padding: 3px 8px; font-size: 11px; }
+.scenario-table td:nth-child(n + 2):nth-child(-n + 5) { white-space: nowrap; font-variant-numeric: tabular-nums; }

@@ -6,6 +6,20 @@ Fetched on 2026-10-29 for the **pilot area** only (Old Town and New Town, `confi
 
 ## Fetched
 
+### OpenStreetMap road network and traffic signals (for the simulated cars)
+- Script: `pipeline/fetch_osm_roads.py` (`make cars`), through the Overpass API with geometry and node ids (`out body geom`): drivable highway classes from `config/roads.yaml` (motorway down to residential and living streets, no service roads) and `highway=traffic_signals` nodes, for the pilot box. `pipeline/stage08_roads.py` turns it into `web/public/data/roads.json`.
+- File: `data/raw/osm/osm_roads_pilot.json` (985 ways and 156 signal nodes, 0.72 MB, sha256 `3e2477d4b28908a0…`), Overpass snapshot 2026-06-01T08:52:28Z, fetched 2026-10-30 (the endpoint that answered was `overpass.kumi.systems`; `overpass-api.de` gave 502s).
+- Licence: ODbL 1.0, (c) OpenStreetMap contributors.
+- Used for: where simulated cars can drive, their speed limits (98.7% from `maxspeed` tags), lane counts and the 88 signalised junctions. Cars are a **simulation**: no traffic counts or live traffic feed are used, and placement is by road class and lane length.
+
+### Lothian bus timetables and route shapes (GTFS)
+- Scripts: `../lothian/fetch.py` and `../lothian/build.py` (`make buses`). Not under `data/raw/`: the cache is `../lothian/data/raw/` (gitignored).
+- URL: https://data.bus-data.dft.gov.uk/timetable/download/gtfs-file/scotland/ (DfT Bus Open Data Service, public, no key). Accessed 2026-10-30, feed version `20261022_034348`.
+- File: `scotland.zip` (288.5 MB, sha256 `821a09966dc28233…`). The feed is republished daily, so a later download will differ. Only Lothian Buses, Lothian Country Buses and East Coast Buses bus routes (99) are kept; trams are dropped.
+- Used for: route shapes, stop positions, running times and departure gaps (one headway per route). The map shows these as **simulated** buses, never live positions. The keyless BODS vehicle feed has no Lothian vehicles.
+- Licence: Open Government Licence v3.0. Credit: DfT Bus Open Data Service.
+- No cost, price or fare fields are read.
+
 ### Overture Maps buildings and building parts
 - Script: `pipeline/fetch_overture.py`. Release pinned to `2026-10-21.0`, read from `s3://overturemaps-us-west-2/release/2026-10-21.0/theme=buildings/` with a bounding-box filter.
 - Docs: https://docs.overturemaps.org/guides/buildings

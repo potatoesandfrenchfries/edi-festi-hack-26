@@ -17,7 +17,7 @@ Modelled (never live) estimates of people active in each Edinburgh building, by 
 3. Keep downloads scoped to Edinburgh (pilot bbox or council area), preferring windowed or filtered reads to whole-country files. There is no hard size limit, but report what was fetched. Ask before applying for gated data and never bypass access controls.
 4. Record every dataset in `DATA_SOURCES.md` (URL, licence, access date, checksum) when it is added.
 5. Label modelled values as estimates in code, UI and docs. Do not call modelled data "live" or "real-time".
-6. No cost, price, rent or rateable-value fields anywhere. If a source has them, drop them in the first pipeline stage.
+6. No rent, rateable-value or property-price fields in the building data. If a source has them, drop them in the first pipeline stage. The one exception is the road-traffic impact model (`config/economics.yaml`: value of time, fuel and carbon values), which is an illustrative estimate and must be labelled as one.
 7. The pipeline is idempotent and deterministic. Cache raw downloads.
 8. Every tunable lives in `config/` with a comment giving its origin: `placeholder`, `literature`, `calibrated` or `assumption`. `tests/test_config.py` enforces this.
 9. If a "Verify" item in `DESIGN.md` section 4 turns out to be false, update the document and flag it instead of working around it.

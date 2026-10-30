@@ -46,9 +46,37 @@ make city AREA=full     # fetch (several GB, cached and resumable per tile), foo
 
 ## Using the map
 
-Pick a day type and an hour (or press Play), and choose whether colour shows people per 1000 m² of floor area or people in the building. The scale has fixed break points, shared by every hour, so the city visibly fills and empties. Click a building for its estimate, use class and height source. The **festival scenario** slider multiplies the workers' share by 1.00 to 1.50. It is a manual scenario, not a measurement. With reduced motion set in the operating system, Play steps more slowly. The **Display** tab switches inferred buildings, landmark towers and building heights on and off, and offers three performance presets (Detailed, Balanced, Light: lower resolution, a later zoom, no inferred buildings). **Test speed** scrubs the hour for three seconds and recommends a preset from the frame rate. A status line at the bottom of the panel shows how many buildings loaded, or says when the basemap fell back to a flat background. Settings are remembered in the browser when storage is available.
+Pick a day type and an hour (or press Play) to change the headline totals. Buildings are cream, and a building flagged `is_venue` in the tiles is drawn in purple so festival venues stand out (the pipeline that sets the flag is not built yet, so for now every building is cream). Click a building for its estimate, use class and height source. The **festival scenario** slider multiplies the workers' share by 1.00 to 1.50. It is a manual scenario, not a measurement. With reduced motion set in the operating system, Play steps more slowly. The **Display** tab switches inferred buildings, landmark towers and building heights on and off, and offers three performance presets (Detailed, Balanced, Light: lower resolution, a later zoom, no inferred buildings). **Test speed** scrubs the hour for three seconds and recommends a preset from the frame rate. A status line at the bottom of the panel shows how many buildings loaded, or says when the basemap fell back to a flat background. Settings are remembered in the browser when storage is available.
 
 The hourly curves are parametric shapes in `config/profiles.yaml`; colour break points, the festival range and the template densities are in `config/model.yaml`. All are placeholders.
+
+### Simulated buses
+
+The **Display** tab has a **Simulated buses** switch and a speed setting. Lothian buses run on every route, each looping end to end and back at the running times of the published timetable, spaced at a regular headway. **This is a simulation, not live positions**, and the headways come from one typical weekday. Build the data once (a public ~290 MB timetable download, no key, cached in `../lothian/`):
+
+```sh
+make buses              # writes web/public/data/lothian.json
+```
+
+Without that file the map works as before and the switch is greyed out.
+
+**Simulated cars** (same tab) put the car engine on the Edinburgh street network, in a Web Worker: cars follow each other with a charged-particle rule, change lanes, queue at the 88 signalised junctions from OpenStreetMap and choose turns at random. They are drawn as small 3D cars (enlarged when zoomed out, not drawn below zoom 12), coloured by driver personality (aggressive, neutral, calm, error-prone). **Not real traffic**: no traffic counts or live feed are used, so how many cars there are and where is a modelling choice. Build the road graph once (an Overpass query, cached; public servers sometimes answer 502 and the fetch retries):
+
+```sh
+make cars               # writes web/public/data/roads.json; the pilot area only
+```
+
+Two honest limits. The pilot area is the only part with cars (`AREA=full make cars` is supported but untested). And the engine **gridlocks**: on this dense street grid, queues spill back round a block until a ring of full roads waits on itself and never clears, even at 6% of capacity. So a car stopped for over 90 s is moved to a free road (SUMO-style teleporting; the panel shows how many). Without that, 90% of cars are stuck within half an hour, which `web/src/cars.test.ts` keeps as a regression test. Cars run at most 60x however fast the buses are set. The engine is in `web/src/engine/`.
+
+**Buses and cars affect each other** (on by default when both layers are showing). Once a second each side reads the other. A bus stopped at a stop lowers the speed of the road it is on to 30% of its limit (a moving bus to 80%), which the car engine reads every step, so cars queue behind it; the buses are snapped to the road within 20 m and travelling the same way. In the other direction, cars crowd a bus's 150 m cell (a car counts for 0.35 of a bus) and a queue of crawling cars holds it up by up to half. The congestion glow counts buses and cars together. These factors are placeholders, and this is a heuristic on road speeds, not a model of lanes: a bus does not physically block a lane, nothing overtakes it, and the two run on their own clocks (buses up to 200x, cars up to 60x), so they are coupled in real time rather than simulated time. Delay a bus causes is counted in the cars' delay figures (they are measured against the road's own speed, not the lowered one).
+
+**Traffic effects** (on by default, same tab) make the buses interact instead of replaying the timetable: buses on a route follow each other with a charged-particle rule, queue at stops, and bunch up as random delays and longer boarding for late buses accumulate; and buses slow down where many routes share a street, with a red glow where several are crawling together. Turn it off for the plain timetable replay. All the constants are placeholders, not calibrated against real bus data (`web/src/traffic.ts`). The pipeline and the standalone viewer are described in [../lothian/README.md](../lothian/README.md).
+
+**Cost of traffic** (the Impact tab) puts a modelled price on slow traffic as a simulated day runs from 06:00: working time lost (people held up times a value of time), fuel burnt (standing still and driving) and carbon emitted (litres times a factor, then valued per tonne), for cars and buses, with generated sentences about the day so far. The cars' sums come from the worker (time below the speed a car would choose on a clear road, time at a standstill, distance), the buses' from the fleet's current rates, so the totals do not depend on how fast the simulation is set. The Scenario tab has two sliders, **bus frequency** (a multiple of the Lothian timetable) and **car traffic** (a multiple of an hourly profile that peaks at 08:00 and 17:00); they are independent, so more buses do not remove cars. **Every constant is a placeholder** in `config/economics.yaml` (each names the published source to check it against), the simulated cars are a sample scaled by `fleet_scale`, and the figures are illustrative, not measurements. Build the constants once (this is the one exception to the no-cost rule, see `CLAUDE.md` rule 6):
+
+```sh
+make economics          # writes web/public/data/economics.json
+```
 
 ## Configuration
 

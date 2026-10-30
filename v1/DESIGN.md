@@ -10,7 +10,7 @@ Milestone scope and the open questions for the owner are in `PLAN.md`. Proposed 
 
 ## 1. Purpose
 
-Build an interactive 3D map of Edinburgh in which every building is an extruded 3D object and is shaded by the **estimated number of people active in it**, by hour of day and day type. The framing is "presence / occupancy", not cost or economic impact.
+Build an interactive 3D map of Edinburgh in which every building is an extruded 3D object and is shaded by the **estimated number of people active in it**, by hour of day and day type. The framing of the building layer is "presence / occupancy", not property cost. A separate traffic-impact panel (`config/economics.yaml`) estimates time, fuel and emissions lost to congestion.
 
 The project is mostly a **data pipeline**: there is no open source of live per-building people counts, so the numbers are modelled. The web app is a MapLibre map with a client-side hourly expression.
 
@@ -22,7 +22,7 @@ The project is mostly a **data pipeline**: there is no open source of live per-b
 - Explicit uncertainty and provenance flags on every number.
 
 ### Out of scope (v1)
-- Any cost, price, rent, rateable-value or economic-impact display.
+- Any rent, rateable-value or property-price display. (A modelled road-congestion cost panel is allowed; see `config/economics.yaml`.)
 - Live per-building counts (not available openly; see section 4).
 - Live bus/tram/rail layers (see open question Q4).
 - The global "world" version. Design choices should not block it later (section 12), but do not build it now.
@@ -113,7 +113,7 @@ One row per building in `data/out/buildings.parquet` (and as tile properties):
 | `work_pop` | float | Modelled workplace population |
 | `res_lo`, `res_hi`, `work_lo`, `work_hi` | float | Plausible range |
 
-No cost, price or value fields exist anywhere in the schema.
+No rent, rateable-value or price fields exist anywhere in the building schema.
 
 ---
 

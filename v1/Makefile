@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: city help install install-py install-web install-browsers fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
+.PHONY: city help install install-py install-web install-browsers buses cars economics fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
         test test-py test-web test-e2e lint web-dev web-build clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
@@ -19,6 +19,16 @@ install-web: ## Install web dependencies from package-lock.json
 	$(WEB) ci
 install-browsers: ## Install the Chromium used by the browser smoke test
 	cd web && npx playwright install chromium
+
+buses: ## Lothian bus simulation data for the map (public timetables, ~290 MB download cached in ../lothian/data/raw/, no key needed)
+	cd .. && uv run python -m lothian.build --out v1/web/public/data/lothian.json
+
+cars: ## Road graph for the simulated cars: OSM roads from Overpass (cached), then web/public/data/roads.json
+	$(PY) pipeline.fetch_osm_roads
+	$(PY) pipeline.stage08_roads
+
+economics: ## Congestion-impact constants (config/economics.yaml) to web/public/data/economics.json
+	$(PY) pipeline.stage09_economics
 
 fetch: ## Download the raw data for AREA (default pilot; AREA=full is several GB; cached; see DATA_SOURCES.md)
 	$(PY) pipeline.fetch_overture

@@ -5,7 +5,6 @@ export type Metric = 'density' | 'total';
 
 export const DAY_TYPES: readonly DayType[] = ['weekday', 'saturday', 'sunday'];
 export const DAY_LABELS: Record<DayType, string> = { weekday: 'Weekday', saturday: 'Saturday', sunday: 'Sunday' };
-export const METRIC_LABELS: Record<Metric, string> = { density: 'People per 1000 m² of floor area', total: 'People in building' };
 
 /** Contents of data/profiles.json, written by pipeline stage 06 from config/profiles.yaml and config/model.yaml. */
 export interface Profiles {
@@ -71,32 +70,4 @@ export function metricExpression(profiles: Profiles, metric: Metric, hour: numbe
   const people = peopleExpression(profiles, hour, day, festival);
   if (metric === 'total') return people;
   return ['/', ['*', people, 1000], ['max', ['coalesce', ['get', 'floor_area_m2'], 1], 1]];
-}
-
-/** Fixed break points for every hour (plan C25), so the city visibly fills and empties. Below the first break a building keeps the neutral colour. */
-export function colourExpression(
-  profiles: Profiles,
-  metric: Metric,
-  hour: number,
-  day: DayType,
-  festival: number,
-  palette: readonly string[],
-  neutral: string,
-): ExpressionSpecification {
-  const breaks = metric === 'density' ? profiles.scale.density_breaks : profiles.scale.total_breaks;
-  if (palette.length !== breaks.length) throw new Error(`palette has ${palette.length} colours for ${breaks.length} break points`);
-  const steps: unknown[] = [];
-  breaks.forEach((value, i) => steps.push(value, palette[i]));
-  return ['step', metricExpression(profiles, metric, hour, day, festival), neutral, ...steps] as ExpressionSpecification;
-}
-
-/** Legend rows, lowest first: a swatch colour and a label for each colour class. */
-export function legendRows(profiles: Profiles, metric: Metric, palette: readonly string[], neutral: string) {
-  const breaks = metric === 'density' ? profiles.scale.density_breaks : profiles.scale.total_breaks;
-  const rows = [{ colour: neutral, label: `Under ${breaks[0]}`, short: `<${breaks[0]}` }];
-  breaks.forEach((low, i) => {
-    const high = breaks[i + 1];
-    rows.push({ colour: palette[i]!, label: high === undefined ? `${low} or more` : `${low} to ${high}`, short: high === undefined ? `${low}+` : `${low}–${high}` });
-  });
-  return rows;
 }

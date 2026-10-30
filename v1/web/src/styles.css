@@ -94,6 +94,14 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .stat dt { font-size: 10px; color: var(--muted); line-height: 1.5; }
 .stat dd { margin: 5px 0 0; font-size: 17px; font-weight: 800; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
 .stat-primary dd { font-size: 30px; letter-spacing: -1px; color: var(--accent); }
+.section-heading-next { margin-top: 26px; }
+.stats + .card { margin-top: 12px; }
+.stat small { display: block; margin-top: 2px; font-size: 10px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
+
+/* Cost of traffic: generated sentences about the day so far */
+.impact-commentary { margin: 14px 2px 0; display: grid; gap: 8px; }
+.impact-commentary p { margin: 0; font-size: 12px; line-height: 1.65; }
+.impact-commentary p:last-child { color: var(--muted); font-size: 11px; }
 
 /* Segmented radios */
 .segmented { margin: 16px 0 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 4px; background: var(--soft); border-radius: 15px; padding: 4px; position: relative; }
@@ -121,16 +129,6 @@ input[type='range'] { flex: 1; width: 100%; min-height: 26px; accent-color: var(
 .card input[type='range'] { display: block; margin: 8px 0 2px; }
 .range-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
 
-/* Legend */
-#legend-block { margin-top: 18px; }
-#legend-title { margin: 0 0 8px; font-size: 12px; font-weight: 700; }
-#legend { list-style: none; margin: 0; padding: 0; display: flex; gap: 3px; }
-#legend li { flex: 1; min-width: 0; text-align: center; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
-#legend i { display: block; height: 10px; margin-bottom: 5px; background: var(--swatch); }
-#legend li:first-child i { border-radius: 6px 0 0 6px; }
-#legend li:last-child i { border-radius: 0 6px 6px 0; }
-#legend-inferred { display: flex; align-items: center; gap: 7px; margin: 10px 0 0; font-size: 10px; color: var(--muted); }
-#legend-inferred i { width: 14px; height: 10px; border-radius: 3px; background: var(--swatch); border: 1px solid #0002; }
 
 /* Loading overlay and status line */
 #loading { position: absolute; z-index: 4; inset: 0; display: grid; place-items: center; align-content: center; gap: 12px; background: color-mix(in srgb, var(--map-bg) 82%, transparent); backdrop-filter: blur(3px); transition: opacity 0.4s var(--ease), visibility 0.4s; }
@@ -149,6 +147,7 @@ input[type='range'] { flex: 1; width: 100%; min-height: 26px; accent-color: var(
 .layer-toggle:hover { background: var(--soft); }
 .layer-toggle + .layer-toggle { border-top: 1px solid var(--line); }
 #view-display .toggle-card { margin-top: 0; }
+#view-display #bus-traffic-card { margin-top: 12px; }
 .layer-text { flex: 1; font-size: 13px; font-weight: 750; line-height: 1.4; }
 .layer-text small { display: block; margin-top: 2px; font-size: 10px; font-weight: 500; color: var(--muted); }
 .layer-icon { display: grid; place-items: center; flex: none; width: 38px; height: 40px; border-radius: 13px; background: var(--tint); color: var(--accent); }
@@ -158,6 +157,8 @@ input[type='range'] { flex: 1; width: 100%; min-height: 26px; accent-color: var(
 .layer-toggle input:checked { background: var(--accent); }
 .layer-toggle input:checked::before { transform: translateX(16px); }
 :root[data-theme='dark'] .layer-toggle input { background: #4a5573; }
+.layer-toggle input:disabled { opacity: 0.45; cursor: not-allowed; }
+.layer-toggle:has(input:disabled) { cursor: not-allowed; }
 
 .preset-cards { margin: 16px 0 0; padding: 0; border: 0; display: grid; gap: 7px; }
 .preset-cards legend { padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 700; }

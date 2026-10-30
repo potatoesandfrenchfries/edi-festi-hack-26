@@ -35,6 +35,7 @@
         <span class="tab-indicator" aria-hidden="true"></span>
         <button type="button" role="tab" id="tab-explore" aria-controls="view-explore" aria-selected="true">Explore</button>
         <button type="button" role="tab" id="tab-scenario" aria-controls="view-scenario" aria-selected="false" tabindex="-1">Scenario</button>
+        <button type="button" role="tab" id="tab-impact" aria-controls="view-impact" aria-selected="false" tabindex="-1">Impact</button>
         <button type="button" role="tab" id="tab-display" aria-controls="view-display" aria-selected="false" tabindex="-1">Display</button>
         <button type="button" role="tab" id="tab-about" aria-controls="view-about" aria-selected="false" tabindex="-1">About</button>
       </div>
@@ -66,18 +67,6 @@
               <button type="button" id="play" class="btn-primary" aria-pressed="false">Play</button>
             </div>
           </div>
-
-          <fieldset id="metrics" class="segmented">
-            <legend>Colour shows</legend>
-            <label><input type="radio" name="metric" value="density"><span>Per 1000 m²</span></label>
-            <label><input type="radio" name="metric" value="total"><span>Per building</span></label>
-          </fieldset>
-
-          <div id="legend-block">
-            <p id="legend-title"></p>
-            <ul id="legend"></ul>
-            <p id="legend-inferred"><i></i><span>Inferred buildings, not modelled</span></p>
-          </div>
         </section>
 
         <section id="view-scenario" class="control-section" role="tabpanel" aria-labelledby="tab-scenario" tabindex="0" hidden>
@@ -92,6 +81,48 @@
             <button type="button" id="festival-reset" class="btn-soft">Switch off</button>
           </div>
           <p class="hint">A manual multiplier on workers, not a measurement. Visitors and tourists are not modelled, so the totals stay lower than a real festival day.</p>
+
+          <div class="section-heading section-heading-next">
+            <h2>Traffic scenario</h2>
+            <p>Change how many buses run and how many cars are on the road. The Impact tab shows what that does to the cost of traffic.</p>
+          </div>
+          <div class="card">
+            <div class="card-head"><span>Bus frequency</span><output id="bus-frequency-label" for="bus-frequency"></output></div>
+            <input type="range" id="bus-frequency" min="0.25" max="3" step="0.25" value="1" aria-label="Bus frequency, as a multiple of the timetable">
+            <div class="range-labels"><span>Rarer ×0.25</span><span>×3.00 more often</span></div>
+            <button type="button" id="bus-frequency-reset" class="btn-soft">Back to the timetable</button>
+          </div>
+          <div class="card">
+            <div class="card-head"><span>Car traffic</span><output id="car-demand-label" for="car-demand"></output></div>
+            <input type="range" id="car-demand" min="0.25" max="1.5" step="0.05" value="1" aria-label="Car traffic, as a multiple of a normal day">
+            <div class="range-labels"><span>Quieter ×0.25</span><span>×1.50 busier</span></div>
+            <button type="button" id="car-demand-reset" class="btn-soft">Back to a normal day</button>
+          </div>
+          <p id="traffic-scenario-hint" class="hint">Frequency scales the Lothian timetable. Car traffic scales a placeholder daily profile that peaks at 08:00 and 17:00. Changing one does not change the other.</p>
+        </section>
+
+        <section id="view-impact" class="control-section" role="tabpanel" aria-labelledby="tab-impact" tabindex="0" hidden>
+          <div class="section-heading">
+            <h2>Cost of traffic</h2>
+            <p>What slow traffic costs as a simulated day runs: working time lost, fuel burnt and carbon emitted, by cars and buses.</p>
+          </div>
+
+          <dl class="stats" aria-label="Estimated cost of traffic so far today">
+            <div class="stat stat-primary"><dt>Cost so far today, estimate</dt><dd id="impact-total">…</dd></div>
+            <div class="stat"><dt>Lost working time</dt><dd id="impact-time">…</dd></div>
+            <div class="stat"><dt>Fuel burnt</dt><dd id="impact-fuel">…</dd></div>
+            <div class="stat"><dt>Carbon emitted</dt><dd id="impact-co2">…</dd></div>
+            <div class="stat"><dt>Carbon, valued</dt><dd id="impact-carbon">…</dd></div>
+            <div class="stat"><dt>Cars</dt><dd id="impact-cars">…</dd></div>
+            <div class="stat"><dt>Buses</dt><dd id="impact-buses">…</dd></div>
+          </dl>
+
+          <div class="card">
+            <div class="card-head"><span>Simulated day</span><output id="impact-clock"></output></div>
+            <button type="button" id="impact-restart" class="btn-soft">Restart the day</button>
+          </div>
+          <div id="impact-commentary" class="impact-commentary" role="status" aria-live="off"></div>
+          <p id="impact-hint" class="hint">The day starts at 06:00 and runs at the simulation speed in the Display tab, up to 60× while cars are on. Estimates from placeholder values, not measurements.</p>
         </section>
 
         <section id="view-display" class="control-section" role="tabpanel" aria-labelledby="tab-display" tabindex="0" hidden>
@@ -116,7 +147,41 @@
               <span class="layer-text">Building heights<small>Off draws flat footprints, which is lighter</small></span>
               <input type="checkbox" id="show-heights" role="switch">
             </label>
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 16V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9M5 16h14M5 16v2h3v-2M16 16v2h3v-2M5 11h14M8.5 13.5h.01M15.5 13.5h.01"/></svg></span>
+              <span class="layer-text">Simulated buses<small id="show-buses-hint">Lothian routes on a regular headway. A simulation, not live positions.</small></span>
+              <input type="checkbox" id="show-buses" role="switch">
+            </label>
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15V11l2-4h10l2 4v4M5 15h14M5 15v3h3v-3M16 15v3h3v-3M7.5 12.5h.01M16.5 12.5h.01"/></svg></span>
+              <span class="layer-text">Simulated cars<small id="show-cars-hint">Cars driving the mapped streets, queueing at signals. Not real traffic.</small></span>
+              <input type="checkbox" id="show-cars" role="switch">
+            </label>
           </div>
+
+          <div id="bus-traffic-card" class="toggle-card">
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l4-8 4 5 3-9 4 12h3"/></svg></span>
+              <span class="layer-text">Traffic effects<small>Bunching, queues at stops and slowdown on shared streets. Off replays the plain timetable.</small></span>
+              <input type="checkbox" id="bus-traffic" role="switch">
+            </label>
+            <label class="layer-toggle">
+              <span class="layer-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12l-3-3M20 16H8l3 3"/></svg></span>
+              <span class="layer-text">Buses and cars affect each other<small id="coupling-hint">A bus stopped at a stop slows the cars behind it; queued cars hold buses up. Needs both layers.</small></span>
+              <input type="checkbox" id="bus-car-coupling" role="switch">
+            </label>
+          </div>
+          <p id="bus-stats" class="hint" role="status" aria-live="off"></p>
+          <p id="car-stats" class="hint" role="status" aria-live="off"></p>
+
+          <fieldset id="bus-speeds" class="segmented">
+            <legend>Bus simulation speed</legend>
+            <label><input type="radio" name="busspeed" value="1"><span>1×</span></label>
+            <label><input type="radio" name="busspeed" value="5"><span>5×</span></label>
+            <label><input type="radio" name="busspeed" value="20"><span>20×</span></label>
+            <label><input type="radio" name="busspeed" value="60"><span>60×</span></label>
+            <label><input type="radio" name="busspeed" value="200"><span>200×</span></label>
+          </fieldset>
 
           <fieldset id="presets" class="preset-cards">
             <legend>Performance</legend>
@@ -149,6 +214,22 @@
               <li>Visitors, tourists, pupils and students.</li>
               <li>Public holidays and festival days, other than the manual festival multiplier.</li>
               <li>Inferred buildings have no people estimate at all.</li>
+            </ul>
+          </details>
+          <details class="disclosure">
+            <summary>Simulated buses</summary>
+            <ul class="about-list">
+              <li><strong>Not live.</strong> Each Lothian route has a bus every few minutes, looping end to end at the running times in the published timetable. Positions are computed, not received from buses.</li>
+              <li><strong>Frequency</strong> comes from one typical weekday, so it ignores peaks, evenings and weekends. Buses do not react to traffic.</li>
+              <li><strong>Credits.</strong> Timetables and route shapes: DfT Bus Open Data Service (OGL v3.0).</li>
+            </ul>
+          </details>
+          <details class="disclosure">
+            <summary>Cost of traffic</summary>
+            <ul class="about-list">
+              <li><strong>Time lost</strong> is the time cars and buses spend below the speed they would choose on a clear road, times the people on board and a value of time per hour. It is an opportunity cost, not takings.</li>
+              <li><strong>Fuel and carbon</strong> come from litres burnt standing still and driving, a carbon factor per litre and a value per tonne. Bus fuel type is not in the timetable data, so diesel is assumed.</li>
+              <li><strong>Scale.</strong> The simulated cars are a sample of the traffic. Every constant is a placeholder in <code>config/economics.yaml</code> until checked against published values.</li>
             </ul>
           </details>
           <details class="disclosure">

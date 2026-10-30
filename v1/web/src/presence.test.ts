@@ -1,9 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createExpression } from '@maplibre/maplibre-gl-style-spec';
 import { describe, expect, it } from 'vitest';
-import { PALETTE } from './palette';
 import { describeBuilding, formatPeople, hourLabel } from './popup';
-import { colourExpression, estimate, legendRows, metricExpression, peopleExpression, totalsAt, type DayType, type Profiles } from './presence';
+import { estimate, metricExpression, peopleExpression, totalsAt, type DayType, type Profiles } from './presence';
 
 const flat = (value: number) => ({ weekday: Array(24).fill(value), saturday: Array(24).fill(value), sunday: Array(24).fill(value) }) as Record<DayType, number[]>;
 const profiles: Profiles = {
@@ -61,21 +60,6 @@ describe('paint expressions agree with estimate()', () => {
     expect(evaluateNumber(metricExpression(profiles, 'density', 12, 'weekday', 1), props)).toBeCloseTo(e.density);
     expect(evaluateNumber(metricExpression(profiles, 'total', 12, 'weekday', 1), props)).toBeCloseTo(e.people);
   });
-  it('a feature with no values gets the neutral colour instead of an error', () => {
-    expect(evaluate(colourExpression(profiles, 'density', 12, 'weekday', 1, PALETTE, '#b8a99a'), { id: 'x' })).toBe('#b8a99a');
-  });
-  it('colour steps follow the fixed break points', () => {
-    // At 03:00 on a weekday the resident factor is 0.5; a 1000 m2 building then has density res_pop * 0.5.
-    const colourAt = (density: number) =>
-      evaluate(colourExpression(profiles, 'density', 3, 'weekday', 1, PALETTE, '#b8a99a'), { use_class: 'unknown', res_pop: density * 2, floor_area_m2: 1000 });
-    expect(colourAt(1)).toBe('#b8a99a'); // under the first break (2)
-    expect(colourAt(3)).toBe(PALETTE[0]); // 2 to 4
-    expect(colourAt(10)).toBe(PALETTE[3 - 1]); // 8 to 15 is the third class
-    expect(colourAt(30)).toBe(PALETTE[4]); // 25 or more
-  });
-  it('rejects a palette that does not match the breaks', () => {
-    expect(() => colourExpression(profiles, 'density', 3, 'weekday', 1, PALETTE.slice(1), '#000')).toThrow();
-  });
 });
 
 describe('totalsAt', () => {
@@ -91,17 +75,6 @@ describe('totalsAt', () => {
     const festival = totalsAt(profiles, 12, 'weekday', 1.5);
     expect(festival.residents).toBe(base.residents);
     expect(festival.workers).toBeCloseTo(base.workers * 1.5);
-  });
-});
-
-describe('legend', () => {
-  it('has short labels that fit under a swatch', () => {
-    expect(legendRows(profiles, 'density', PALETTE, '#000').map((r) => r.short)).toEqual(['<2', '2–4', '4–8', '8–15', '15–25', '25+']);
-  });
-  it('has one neutral row plus one per colour class', () => {
-    const rows = legendRows(profiles, 'density', PALETTE, '#b8a99a');
-    expect(rows.map((r) => r.label)).toEqual(['Under 2', '2 to 4', '4 to 8', '8 to 15', '15 to 25', '25 or more']);
-    expect(rows.map((r) => r.colour)).toEqual(['#b8a99a', ...PALETTE]);
   });
 });
 

@@ -9,10 +9,29 @@ export const INFERRED_LAYER = 'inferred-3d';
 export const TILES_PATH = 'data/buildings.pmtiles';
 export const BUILDINGS_MIN_ZOOM = 13;
 
-/** Colour of a mapped building whose estimate is under the first break point (the neutral class of the scale). */
-export const BUILDING_COLOUR = { light: '#b8a99a', dark: '#7d8aa0' } as const;
-/** Inferred buildings (not mapped in OSM) are a lighter tone of the same colour so they are never mistaken for mapped ones. */
-export const INFERRED_COLOUR = { light: '#d3c8bc', dark: '#a3aec2' } as const;
+/** Ordinary buildings, mapped or inferred: cream. */
+export const BUILDING_COLOUR = { light: '#efe6d2', dark: '#d8cdb4' } as const;
+/** Buildings that host festival events stand out from the cream in purple. */
+export const VENUE_COLOUR = { light: '#7b2fbe', dark: '#b57bff' } as const;
+/** Boolean tile property on a building that is a festival venue. The pipeline that finds venues is not built yet, so until it writes this nothing is highlighted. */
+export const VENUE_PROPERTY = 'is_venue';
+
+/** Important public buildings (Waverley station, the National Museum of Scotland): pale mint in both themes. Wins over the venue purple. */
+export const PUBLIC_COLOUR = { light: '#CFF4E2', dark: '#CFF4E2' } as const;
+/** Boolean tile property on a building listed in config/public_buildings.csv. */
+export const PUBLIC_PROPERTY = 'is_public';
+
+export function buildingColour(dark: boolean): ExpressionSpecification {
+  const theme = dark ? 'dark' : 'light';
+  return [
+    'case',
+    ['==', ['coalesce', ['get', PUBLIC_PROPERTY], false], true],
+    PUBLIC_COLOUR[theme],
+    ['==', ['coalesce', ['get', VENUE_PROPERTY], false], true],
+    VENUE_COLOUR[theme],
+    BUILDING_COLOUR[theme],
+  ];
+}
 
 let registered = false;
 
@@ -32,17 +51,6 @@ export async function tilesAvailable(url: string, fetchFn: typeof fetch = fetch)
   } catch {
     return false;
   }
-}
-
-export const MODELLED_LAYERS = [BUILDINGS_LAYER, PARTS_LAYER] as const;
-
-/** Sets the occupancy colour on the mapped buildings and the landmark parts that stand on them. Inferred buildings are not modelled. */
-export function setOccupancyColour(map: maplibregl.Map, colour: ExpressionSpecification): void {
-  for (const layer of MODELLED_LAYERS) map.setPaintProperty(layer, 'fill-extrusion-color', colour);
-}
-
-export function setInferredColour(map: maplibregl.Map, dark: boolean): void {
-  map.setPaintProperty(INFERRED_LAYER, 'fill-extrusion-color', dark ? INFERRED_COLOUR.dark : INFERRED_COLOUR.light);
 }
 
 const ALL_LAYERS = [BUILDINGS_LAYER, PARTS_LAYER, INFERRED_LAYER] as const;
@@ -95,7 +103,7 @@ export function addBuildings(map: maplibregl.Map, tilesUrl: string, dark: boolea
   const before = firstLabelLayer(map);
   map.addSource(BUILDINGS_SOURCE, { type: 'vector', url: `pmtiles://${tilesUrl}`, minzoom: BUILDINGS_MIN_ZOOM, maxzoom: 16 });
   const paint = {
-    'fill-extrusion-color': dark ? BUILDING_COLOUR.dark : BUILDING_COLOUR.light,
+    'fill-extrusion-color': buildingColour(dark),
     'fill-extrusion-height': ['get', 'height_m'],
     'fill-extrusion-base': 0,
     'fill-extrusion-opacity': 1,
@@ -111,7 +119,7 @@ export function addBuildings(map: maplibregl.Map, tilesUrl: string, dark: boolea
       source: BUILDINGS_SOURCE,
       'source-layer': 'inferred_buildings',
       minzoom: BUILDINGS_MIN_ZOOM,
-      paint: { ...paint, 'fill-extrusion-color': dark ? INFERRED_COLOUR.dark : INFERRED_COLOUR.light },
+      paint,
     },
     before,
   );

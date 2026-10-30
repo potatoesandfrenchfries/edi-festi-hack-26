@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { firstLabelLayer, hideBasemapExtrusions, tilesAvailable } from './buildings';
+import { createExpression } from '@maplibre/maplibre-gl-style-spec';
+import { BUILDING_COLOUR, buildingColour, firstLabelLayer, hideBasemapExtrusions, PUBLIC_COLOUR, tilesAvailable, VENUE_COLOUR } from './buildings';
 
 const respond = (body: string, ok = true) => (async () => ({ ok, arrayBuffer: async () => new TextEncoder().encode(body).buffer })) as unknown as typeof fetch;
 
@@ -42,5 +43,27 @@ describe('hideBasemapExtrusions', () => {
     } as unknown as Parameters<typeof hideBasemapExtrusions>[0];
     expect(hideBasemapExtrusions(map)).toEqual(['building-3d']);
     expect(hidden).toEqual(['building-3d']);
+  });
+});
+
+describe('buildingColour', () => {
+  const evaluate = (expression: unknown, properties: Record<string, unknown> = {}) => {
+    const parsed = createExpression(expression as never, { type: 'color' } as never);
+    if (parsed.result !== 'success') throw new Error(JSON.stringify(parsed.value));
+    return JSON.stringify(parsed.value.evaluate({ zoom: 15 } as never, { type: 'Polygon', properties } as never));
+  };
+  const colourOf = (dark: boolean, properties: Record<string, unknown>) => evaluate(buildingColour(dark), properties);
+  it('is cream for an ordinary building, with or without the venue property', () => {
+    expect(colourOf(false, { id: 'a' })).toBe(evaluate(BUILDING_COLOUR.light));
+    expect(colourOf(false, { is_venue: false })).toBe(evaluate(BUILDING_COLOUR.light));
+    expect(colourOf(true, { id: 'a' })).toBe(evaluate(BUILDING_COLOUR.dark));
+  });
+  it('uses the venue colour for a venue, in both themes', () => {
+    expect(colourOf(false, { is_venue: true })).toBe(evaluate(VENUE_COLOUR.light));
+    expect(colourOf(true, { is_venue: true })).toBe(evaluate(VENUE_COLOUR.dark));
+  });
+  it('uses #CFF4E2 for a public building, in both themes, even when it is also a venue', () => {
+    expect(colourOf(false, { is_public: true })).toBe(evaluate('#CFF4E2'));
+    expect(colourOf(true, { is_public: true, is_venue: true })).toBe(evaluate(PUBLIC_COLOUR.dark));
   });
 });

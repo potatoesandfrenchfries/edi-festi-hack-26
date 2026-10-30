@@ -15,6 +15,9 @@ type Map = {
 type Handle = { map: Map; state: { buildings: boolean }; measureScrub(seconds: number): Promise<{ medianFps: number; p5Fps: number; frames: number }> };
 const handle = '(window as unknown as { edinburghPresence: Handle }).edinburghPresence';
 const hasTiles = existsSync(new URL('../public/data/buildings.pmtiles', import.meta.url));
+const hasBuses = existsSync(new URL('../public/data/lothian.json', import.meta.url));
+const hasCars = existsSync(new URL('../public/data/roads.json', import.meta.url));
+const hasEconomics = existsSync(new URL('../public/data/economics.json', import.meta.url));
 
 function collectErrors(page: import('@playwright/test').Page) {
   const errors: string[] = [];
@@ -29,8 +32,14 @@ test('loads with no secrets and shows the modelled-estimate banner', async ({ pa
   await expect(page.locator('#banner')).toHaveText('Modelled estimates, not live counts.');
   await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.map.loaded());
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible();
-  const sources = await page.evaluate(() => Object.keys((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getStyle().sources));
-  expect(sources.every((name) => name === 'buildings')).toBe(true); // no basemap source, so no key is needed
+  // No basemap, so no key or network is needed: every map source is local (the buildings archive, and the bus and car layers' GeoJSON).
+  const remote = await page.evaluate(() => {
+    const sources = (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getStyle().sources as Record<string, { url?: string; tiles?: string[] }>;
+    return Object.entries(sources)
+      .filter(([, source]) => [source.url, ...(source.tiles ?? [])].some((u) => /^https?:/i.test(u ?? '')))
+      .map(([name]) => name);
+  });
+  expect(remote).toEqual([]);
   expect(errors).toEqual([]);
 });
 
@@ -38,6 +47,133 @@ test('shows a notice instead of failing when the tiles have not been built', asy
   test.skip(hasTiles, 'tiles exist, so the notice path cannot be exercised');
   await page.goto('/');
   await expect(page.locator('#notice')).toBeVisible();
+});
+
+test.describe('with bus data', () => {
+  test.skip(!hasTiles || !hasBuses, 'run `make tiles` and `make buses` first');
+
+  test('draws simulated buses, hides them with the switch and keeps them after a theme change', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    const drawn = () =>
+      page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.queryRenderedFeatures(undefined, { layers: ['buses-layer'] }).length);
+    await expect.poll(drawn).toBeGreaterThan(0);
+    await page.getByRole('tab', { name: 'Display' }).click();
+    await expect(page.locator('#show-buses')).toBeChecked();
+    await expect(page.locator('#bus-speeds')).toBeVisible();
+    await page.locator('#show-buses').uncheck();
+    await expect.poll(drawn).toBe(0);
+    await expect(page.locator('#bus-speeds')).toBeHidden();
+    await page.locator('#show-buses').check();
+    await expect.poll(drawn).toBeGreaterThan(0);
+    await page.getByLabel('60×').check();
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('edinburgh-presence-settings') ?? '{}').busSpeed)).toBe(60);
+    await page.locator('#theme').click(); // system to light, which reloads the style
+    await page.locator('#theme').click(); // light to dark
+    await expect.poll(drawn).toBeGreaterThan(0);
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('with bus data and traffic', () => {
+  test.skip(!hasTiles || !hasBuses, 'run `make tiles` and `make buses` first');
+
+  test('traffic effects report live figures and can be switched off for a plain timetable replay', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.getByRole('tab', { name: 'Display' }).click();
+    await expect(page.locator('#bus-traffic')).toBeChecked();
+    await expect(page.locator('#bus-stats')).toContainText(/\d+ buses · average \d+ km\/h/);
+    await page.locator('#bus-traffic').uncheck();
+    await expect(page.locator('#bus-stats')).toContainText('Timetable replay');
+    await page.locator('#bus-traffic').check();
+    await expect(page.locator('#bus-stats')).toContainText('buses · average');
+    await page.locator('#show-buses').uncheck();
+    await expect(page.locator('#bus-traffic-card')).toBeHidden(); // nothing to configure while the buses are off
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('with bus and road data', () => {
+  test.skip(!hasTiles || !hasBuses || !hasCars, 'run `make tiles`, `make buses` and `make cars` first');
+
+  test('buses and cars slow each other, and the switch turns that off', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.getByRole('tab', { name: 'Display' }).click();
+    await expect(page.locator('#bus-car-coupling')).toBeChecked();
+    // Buses stop at stops, so within a few seconds some road under a bus has been slowed for the cars on it.
+    await expect(page.locator('#car-stats')).toContainText(/\d+ roads slowed by buses/, { timeout: 30000 });
+    await page.locator('#bus-car-coupling').uncheck();
+    await expect(page.locator('#car-stats')).not.toContainText('slowed by buses', { timeout: 10000 });
+    await page.locator('#bus-car-coupling').check();
+    await expect(page.locator('#car-stats')).toContainText('slowed by buses', { timeout: 30000 });
+    await page.locator('#show-cars').uncheck();
+    await expect(page.locator('#coupling-hint')).toContainText('Needs the simulated cars');
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('with road data', () => {
+  test.skip(!hasTiles || !hasCars, 'run `make tiles` and `make cars` first');
+
+  test('draws simulated cars off the main thread, reports their figures, and hides them with the switch', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.jumpTo({ zoom: 15.5, pitch: 0 }));
+    const drawn = () =>
+      page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.queryRenderedFeatures(undefined, { layers: ['cars-layer'] }).length);
+    await expect.poll(drawn, { timeout: 20000 }).toBeGreaterThan(20);
+    await page.getByRole('tab', { name: 'Display' }).click();
+    await expect(page.locator('#show-cars')).toBeChecked();
+    await expect(page.locator('#car-stats')).toContainText(/[\d,]+ cars · average \d+ km\/h · \d+ stuck/, { timeout: 15000 });
+    await page.locator('#show-cars').uncheck();
+    await expect.poll(drawn).toBe(0);
+    await expect(page.locator('#car-stats')).toHaveText('');
+    await page.locator('#show-cars').check();
+    await expect.poll(drawn, { timeout: 20000 }).toBeGreaterThan(20);
+    await expect(page.locator('#car-stats')).toContainText('cars · average', { timeout: 15000 });
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('with traffic impact', () => {
+  test.skip(!hasTiles || !hasBuses || !hasCars || !hasEconomics, 'run `make tiles`, `make buses`, `make cars` and `make economics` first');
+
+  test('the Impact tab accrues a cost as the day runs, and the sliders change the scenario', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.getByRole('tab', { name: 'Impact' }).click();
+    await expect(page.locator('#impact-clock')).toHaveText(/^\d\d:\d\d$/);
+    await expect(page.locator('#impact-total')).not.toHaveText('£0.00', { timeout: 30000 });
+    await expect(page.locator('#impact-commentary')).toContainText('traffic has cost an estimated', { timeout: 30000 });
+    await expect(page.locator('#impact-commentary')).toContainText('not measurements');
+    await expect(page.locator('#impact-fuel')).toContainText(' L');
+
+    await page.getByRole('tab', { name: 'Scenario' }).click();
+    await page.locator('#bus-frequency').fill('2');
+    await expect(page.locator('#bus-frequency-label')).toHaveText('×2.00');
+    await page.locator('#car-demand').fill('0.5');
+    await expect(page.locator('#car-demand-label')).toHaveText('×0.50');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('edinburgh-presence-settings') ?? '{}'));
+    expect(saved).toMatchObject({ busFrequency: 2, carDemand: 0.5 });
+    await page.getByRole('tab', { name: 'Impact' }).click();
+    await expect(page.locator('#impact-commentary')).toContainText('×2.00', { timeout: 15000 });
+    await expect(page.locator('#impact-commentary')).toContainText('fewer cars');
+
+    await page.locator('#impact-restart').click();
+    await expect(page.locator('#impact-clock')).toHaveText(/^06:0\d$/);
+    await page.getByRole('tab', { name: 'Scenario' }).click();
+    await page.locator('#bus-frequency-reset').click();
+    await expect(page.locator('#bus-frequency-label')).toHaveText('×1.00');
+    await expect(page.locator('#bus-frequency-reset')).toBeHidden();
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('with built tiles', () => {
@@ -107,27 +243,19 @@ test.describe('controls and popup', () => {
   const colourJson = (page: import('@playwright/test').Page) =>
     page.evaluate(() => JSON.stringify((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getPaintProperty('buildings-3d', 'fill-extrusion-color')));
 
-  test('shows the uncalibrated notice and the legend', async ({ page }) => {
+  test('shows the uncalibrated notice', async ({ page }) => {
     await ready(page);
     await expect(page.locator('#profile-notice')).toContainText('Uncalibrated placeholder profiles');
     await expect(page.locator('#profile-notice')).toContainText('not census figures');
-    await expect(page.locator('#legend li')).toHaveCount(6); // neutral + 5 classes
-    await expect(page.locator('#legend-inferred')).toContainText('not modelled');
+    await expect(page.locator('#legend-block')).toHaveCount(0);
   });
 
-  test('changing the hour, day type and metric changes the paint expression', async ({ page }) => {
+  test('buildings are cream, or the venue colour when flagged, whatever the hour', async ({ page }) => {
     await ready(page);
+    const before = await colourJson(page);
+    expect(before).toContain('is_venue');
     await page.locator('#hour').fill('3');
-    const night = await colourJson(page);
-    await page.locator('#hour').fill('12');
-    await expect.poll(() => colourJson(page)).not.toBe(night);
-    const weekday = await colourJson(page);
-    await page.getByLabel('Sunday').check();
-    await expect.poll(() => colourJson(page)).not.toBe(weekday);
-    const sunday = await colourJson(page);
-    await page.getByLabel('Per building').check();
-    await expect.poll(() => colourJson(page)).not.toBe(sunday);
-    await expect(page.locator('#legend-title')).toContainText('People in building');
+    expect(await colourJson(page)).toBe(before);
   });
 
   test('the hour slider works from the keyboard', async ({ page }) => {
@@ -140,18 +268,16 @@ test.describe('controls and popup', () => {
     await expect(page.locator('#hour-label')).toHaveText('23:00');
   });
 
-  test('the festival multiplier changes the paint and the headline, and is labelled as manual', async ({ page }) => {
+  test('the festival multiplier changes the headline, and is labelled as manual', async ({ page }) => {
     await ready(page);
     await page.locator('#hour').fill('12');
-    const before = await colourJson(page);
     const people = await page.locator('#stat-people').textContent();
     await page.getByRole('tab', { name: 'Scenario' }).click();
     await expect(page.locator('#view-scenario')).toBeVisible();
     await expect(page.locator('#festival-reset')).toBeHidden();
     await page.locator('#festival').fill('1.5');
     await expect(page.locator('#festival-label')).toHaveText('×1.50');
-    await expect.poll(() => colourJson(page)).not.toBe(before);
-    await expect(page.locator('#view-scenario .hint')).toContainText('not a measurement');
+    await expect(page.locator('#view-scenario .hint').first()).toContainText('not a measurement');
     await page.getByRole('tab', { name: 'Explore' }).click();
     await expect(page.locator('#stat-people')).not.toHaveText(people!);
     await page.getByRole('tab', { name: 'Scenario' }).click();

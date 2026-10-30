@@ -2,17 +2,22 @@ import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url';
 import './styles.css';
+import { BUSES_LAYER, BusSimulation, describeBus, loadBusData, type BusData } from './buses';
+import { TENT_LAYER, TentLayer } from './tent';
+import { CarSimulation, loadCarData } from './cars';
+import { BusCarCoupling } from './coupling';
 import {
-  addBuildings, BUILDING_COLOUR, BUILDINGS_LAYER, BUILDINGS_SOURCE, INFERRED_COLOUR, INFERRED_LAYER, PARTS_LAYER, registerPmtiles,
-  setBuildingsMinZoom, setHeights, setInferredColour, setInferredVisible, setOccupancyColour, setTowersVisible, tilesAvailable, TILES_PATH,
+  addBuildings, BUILDINGS_LAYER, BUILDINGS_SOURCE, INFERRED_LAYER, PARTS_LAYER, registerPmtiles,
+  setBuildingsMinZoom, setHeights, setInferredVisible, setTowersVisible, tilesAvailable, TILES_PATH,
 } from './buildings';
 import { PILOT_CENTRE, PILOT_VIEW, basemapStyleUrl } from './config';
 import { initControls } from './controls';
+import { loadEconomics, type Economics } from './impact';
+import { ImpactTracker } from './impact-tracker';
 import { PRESETS, SPEED_TEST_SECONDS, pixelRatioFor, speedAdvice } from './display';
-import { PALETTE } from './palette';
 import { measureScrub } from './perf';
 import { describeBuilding, describeInferred, formatCount, showPopup, type BuildingProps } from './popup';
-import { colourExpression, legendRows, METRIC_LABELS, totalsAt, type Profiles } from './presence';
+import { totalsAt, type Profiles } from './presence';
 import { loadSettings, saveSettings, type Settings, type Theme } from './settings';
 import { blankStyle } from './style';
 
@@ -44,7 +49,10 @@ async function loadProfiles(): Promise<Profiles | null> {
 async function main() {
   const profiles = await loadProfiles();
   const range = profiles?.festival ?? { min: 1, max: 1.5, step: 0.05, default: 1 };
-  const settings = loadSettings(range);
+  // Optional: without `make economics` there are no cost figures, and the Impact tab says so.
+  const economics = await loadEconomics();
+  const scenario = economics ? { busFrequency: economics.demand.bus_frequency, carDemand: economics.demand.car_demand } : undefined;
+  const settings = loadSettings(range, undefined, scenario);
 
   // The basemap comes from a public service. If it cannot be loaded the map falls back to a flat background, so the buildings still show.
   let basemapFailed = false;
@@ -54,6 +62,14 @@ async function main() {
     styleLoaded = false;
     map.setStyle(styleFor(theme), { diff: false }); // a full reload, so 'style.load' fires and the building layers are added again
   };
+
+  // Optional: without `make buses` the map works as before and the bus switch says it is unavailable.
+  // Awaited before the map exists: awaiting after would let 'style.load' fire before its handler is registered, leaving the overlay up.
+  const busData = await loadBusData();
+  const buses = busData ? new BusSimulation(busData, reducedMotion.matches ? 1000 : 33) : null;
+  // Likewise optional: without `make cars` there are no cars and their switch says so.
+  const carData = await loadCarData();
+  const cars = carData ? new CarSimulation(carData, reducedMotion.matches ? 1000 : 100) : null;
 
   const map = new maplibregl.Map({
     container: 'map',
@@ -90,11 +106,17 @@ async function main() {
       hideLoading();
       return;
     }
-    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed);
+    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed, buses, busData, cars, economics);
     app.install();
     state.buildings = true;
-    map.once('idle', hideLoading); // the first frame with the buildings drawn
-    setTimeout(hideLoading, 15000); // never leave the overlay up if the map never goes idle
+    // The first frame with the buildings drawn. The buses only start moving after this: they keep the map from ever going idle.
+    const ready = () => {
+      hideLoading();
+      buses?.start();
+      cars?.start();
+    };
+    map.once('idle', ready);
+    setTimeout(ready, 15000); // never leave the overlay up if the map never goes idle
   });
   map.on('error', () => {
     if (styleLoaded || basemapFailed) return;
@@ -110,14 +132,20 @@ function createApp(
   handle: Record<string, unknown>,
   applyStyle: (theme: Theme) => void,
   basemapFailed: () => boolean,
+  buses: BusSimulation | null,
+  busData: BusData | null,
+  cars: CarSimulation | null,
+  economics: Economics | null,
 ) {
+  // Buses and cars slow each other down; only when both exist (see coupling.ts).
+  const coupling = buses && cars ? new BusCarCoupling(buses, cars) : null;
   let settings = initial;
   let frame = 0;
   let timer: number | null = null;
   let styleDark = darkFor(initial.theme);
+  let tracker: ImpactTracker | null = null; // set once the controls exist; the controls' events use it
 
   const isDark = () => darkFor(settings.theme);
-  const neutral = () => (isDark() ? BUILDING_COLOUR.dark : BUILDING_COLOUR.light);
   const hasLayers = () => Boolean(map.getLayer(BUILDINGS_LAYER));
 
   function paint() {
@@ -130,11 +158,8 @@ function createApp(
       return;
     }
     renderHeadline();
-    renderLegend();
     if (!hasLayers()) return;
-    setInferredColour(map, isDark());
     applyDisplay();
-    setOccupancyColour(map, colourExpression(profiles, settings.metric, settings.hour, settings.day, settings.festival, PALETTE, neutral()));
   }
   // Layer switches and the performance preset. Run on every paint, so they survive a style reload.
   let pixelRatio = 0;
@@ -143,12 +168,25 @@ function createApp(
     setInferredVisible(map, settings.showInferred && preset.inferred);
     setTowersVisible(map, settings.showTowers);
     setHeights(map, settings.heights3d);
+    buses?.setVisible(settings.showBuses);
+    buses?.setSpeed(settings.busSpeed);
+    buses?.setTraffic(settings.busTraffic);
+    buses?.setFrequency(settings.busFrequency);
+    cars?.setVisible(settings.showCars);
+    cars?.setSpeed(settings.busSpeed);
+    coupling?.setEnabled(settings.busCarCoupling);
+    tracker?.setScenario({
+      carsOn: cars !== null && settings.showCars,
+      busesOn: buses !== null && settings.showBuses,
+      busFrequency: settings.busFrequency,
+      carDemand: settings.carDemand,
+    });
     setBuildingsMinZoom(map, preset.minZoom);
     const wanted = pixelRatioFor(settings.preset, window.devicePixelRatio || 1);
     if (wanted !== pixelRatio) map.setPixelRatio((pixelRatio = wanted));
     updateZoomHint();
   }
-  // Several input events in one frame (a fast scrub) cost one expression swap.
+  // Several input events in one frame (a fast scrub) cost one repaint.
   const schedule = () => {
     if (!frame) frame = requestAnimationFrame(paint);
   };
@@ -156,26 +194,6 @@ function createApp(
   function renderHeadline() {
     const totals = totalsAt(profiles, settings.hour, settings.day, settings.festival);
     controls.setHeadline({ people: formatCount(totals.people), residents: formatCount(totals.residents), workers: formatCount(totals.workers) });
-  }
-
-  function renderLegend() {
-    const list = document.getElementById('legend');
-    const title = document.getElementById('legend-title');
-    const inferred = document.querySelector<HTMLElement>('#legend-inferred i');
-    if (!list || !title) return;
-    title.textContent = `${METRIC_LABELS[settings.metric]} (estimates)`;
-    inferred?.style.setProperty('--swatch', isDark() ? INFERRED_COLOUR.dark : INFERRED_COLOUR.light);
-    list.replaceChildren(
-      ...legendRows(profiles, settings.metric, PALETTE, neutral()).map((row) => {
-        const item = document.createElement('li');
-        item.title = row.label;
-        item.setAttribute('aria-label', row.label);
-        const swatch = document.createElement('i');
-        swatch.style.setProperty('--swatch', row.colour);
-        item.append(swatch, row.short);
-        return item;
-      }),
-    );
   }
 
   const controls = initControls(
@@ -197,9 +215,47 @@ function createApp(
         controls.setHour(before);
         return speedAdvice(result.medianFps, settings.preset).text;
       },
+      restartDay() {
+        tracker?.restart();
+        if (tracker) controls.setImpact(tracker.view());
+      },
     },
     reducedMotion,
+    economics ? { busFrequency: economics.demand.bus_frequency, carDemand: economics.demand.car_demand } : undefined,
   );
+
+  // The cost of traffic: a ledger fed by the car worker's figures and the bus fleet's rates, shown once a second.
+  if (economics) {
+    tracker = new ImpactTracker(economics, {
+      busRates: () => buses?.rates() ?? null,
+      setCarDemand: (fraction) => cars?.setDemand(fraction),
+      speed: () => settings.busSpeed,
+      hidden: () => document.hidden,
+      now: () => performance.now(),
+    });
+    const impact = tracker;
+    impact.setScenario({ carsOn: cars !== null && settings.showCars, busesOn: buses !== null && settings.showBuses, busFrequency: settings.busFrequency, carDemand: settings.carDemand });
+    controls.setImpact(impact.view());
+    window.setInterval(() => {
+      impact.tick();
+      controls.setImpact(impact.view());
+    }, 1000);
+  } else {
+    controls.setImpact({ total: '–', time: '–', fuel: '–', co2: '–', carbon: '–', cars: '–', buses: '–', clock: '–', lines: ['Not built. Run make economics, then reload.'] });
+  }
+
+  controls.setBusesAvailable(buses !== null);
+  if (buses) window.setInterval(() => controls.setBusStats(settings.showBuses ? buses.trafficStats() : null), 1000);
+  reducedMotion.addEventListener('change', () => buses?.setDrawInterval(reducedMotion.matches ? 1000 : 33));
+  controls.setCarsAvailable(cars !== null);
+  coupling?.start();
+  if (cars) {
+    cars.onStats = (stats) => {
+      controls.setCarStats(settings.showCars ? stats : null);
+      tracker?.onCarStats(settings.showCars ? stats : null);
+    };
+  }
+  reducedMotion.addEventListener('change', () => cars?.setFrameInterval(reducedMotion.matches ? 1000 : 100));
 
   function setPlaying(playing: boolean) {
     if (timer !== null) clearInterval(timer);
@@ -222,7 +278,18 @@ function createApp(
   // Popups. A tower part shows the building it stands on.
   const hit = (event: maplibregl.MapMouseEvent) =>
     hasLayers() ? map.queryRenderedFeatures(event.point, { layers: [PARTS_LAYER, BUILDINGS_LAYER, INFERRED_LAYER] })[0] : undefined;
+  const busAt = (event: maplibregl.MapMouseEvent) =>
+    buses && map.getLayer(BUSES_LAYER) && settings.showBuses ? map.queryRenderedFeatures(event.point, { layers: [BUSES_LAYER] })[0] : undefined;
   map.on('click', (event) => {
+    const picked = busAt(event);
+    if (picked && buses && busData) {
+      const bus = buses.find(String(picked.properties.id));
+      if (bus) {
+        buses.selectBus(bus);
+        showPopup(map, [bus.lon, bus.lat], describeBus(bus, busData)).once('close', () => buses.selectBus(null));
+        return;
+      }
+    }
     const feature = hit(event);
     if (!feature) return;
     const popupState = { day: settings.day, hour: settings.hour, festival: settings.festival };
@@ -235,7 +302,7 @@ function createApp(
     showPopup(map, event.lngLat, describeBuilding(props, popupState, profiles));
   });
   map.on('mousemove', (event) => {
-    map.getCanvas().style.cursor = hit(event) ? 'pointer' : '';
+    map.getCanvas().style.cursor = busAt(event) || hit(event) ? 'pointer' : '';
   });
 
   handle.settings = () => ({ ...settings });
@@ -245,6 +312,9 @@ function createApp(
     /** Adds the building layers to the current style and paints them. Called on every 'style.load'. */
     install() {
       addBuildings(map, tilesUrl, isDark());
+      cars?.install(map, isDark()); // before the buses, so cars are drawn under them
+      buses?.install(map, isDark());
+      if (!map.getLayer(TENT_LAYER)) map.addLayer(new TentLayer(isDark()));
       paint();
       if (basemapFailed()) controls.setStatus('warning', 'Basemap unavailable. Showing a flat background.');
       else controls.setStatus('ready', `${profiles.totals.buildings.toLocaleString('en-GB')} buildings · modelled estimates`);

@@ -5,13 +5,18 @@ const range = { min: 1, max: 1.5 };
 
 describe('settings', () => {
   it('keeps valid values', () => {
-    const saved = { day: 'saturday', hour: 14, metric: 'total', festival: 1.25, theme: 'dark', minimised: true, showInferred: false, showTowers: false, heights3d: false, preset: 'light' };
+    const saved = { day: 'saturday', hour: 14, festival: 1.25, theme: 'dark', minimised: true, showInferred: false, showTowers: false, heights3d: false, preset: 'light', showBuses: false, busSpeed: 60, busTraffic: false, showCars: false, busCarCoupling: false, busFrequency: 2, carDemand: 0.5 };
     expect(sanitise(saved, range)).toEqual(saved);
   });
   it('replaces invalid or hostile values with defaults and clamps the festival multiplier', () => {
-    expect(sanitise({ day: 'monday', hour: 24, metric: 3, festival: 9, theme: 'pink', minimised: 'yes', showInferred: 'no', showTowers: 0, heights3d: null, preset: 'ultra' }, range)).toEqual({ ...DEFAULT_SETTINGS, festival: 1.5 });
+    expect(sanitise({ day: 'monday', hour: 24, festival: 9, theme: 'pink', minimised: 'yes', showInferred: 'no', showTowers: 0, heights3d: null, preset: 'ultra', showBuses: 'no', busSpeed: 7, busTraffic: 0, showCars: 'yes', busCarCoupling: 'on', busFrequency: 'lots', carDemand: null }, range)).toEqual({ ...DEFAULT_SETTINGS, festival: 1.5 });
     expect(sanitise({ hour: 1.5, festival: Number.NaN }, range)).toEqual(DEFAULT_SETTINGS);
     expect(sanitise('nonsense', range)).toEqual(DEFAULT_SETTINGS);
+  });
+  it('clamps the bus frequency and car demand to the slider ranges', () => {
+    expect(sanitise({ busFrequency: 50, carDemand: -3 }, range)).toMatchObject({ busFrequency: 3, carDemand: 0.25 });
+    expect(sanitise({ busFrequency: 50, carDemand: 9 }, range, { busFrequency: { min: 0.5, max: 4 }, carDemand: { min: 0.1, max: 2 } })).toMatchObject({ busFrequency: 4, carDemand: 2 });
+    expect(sanitise({ busFrequency: Number.NaN }, range).busFrequency).toBe(1);
   });
   it('falls back to defaults when storage is missing, empty, corrupt or throws', () => {
     expect(loadSettings(range, null)).toEqual(DEFAULT_SETTINGS);

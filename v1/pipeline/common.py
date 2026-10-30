@@ -26,14 +26,14 @@ def sha256(path, chunk=1 << 20):
     return digest.hexdigest()
 
 
-def download(url, target):
+def download(url, target, headers=None):
     """Downloads once to a cache path. A partial file never masquerades as complete."""
     target = Path(target)
     if target.exists():
         return target
     target.parent.mkdir(parents=True, exist_ok=True)
     part = target.with_suffix(target.suffix + ".part")
-    with requests.get(url, stream=True, timeout=60) as response:
+    with requests.get(url, stream=True, timeout=60, headers=headers) as response:
         response.raise_for_status()
         with open(part, "wb") as out:
             # iter_content undoes any Content-Encoding (gzip) the server applied; response.raw would not.

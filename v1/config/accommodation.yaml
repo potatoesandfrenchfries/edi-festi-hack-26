@@ -1,0 +1,42 @@
+# Visitor accommodation (pipeline/accommodation.py): where people from outside Edinburgh sleep, as bed-spaces per building.
+# Licensed short-term lets come from the council's public register (maximum occupancy per licence); hotels and similar come from
+# OpenStreetMap and Overture tags with a bed count estimated from floor area. A modelled estimate, never a count of guests.
+# Every value carries an origin tag: placeholder, literature, calibrated or assumption.
+
+status: placeholder                 # assumption: every figure below is a placeholder until checked against visitor-accommodation statistics
+
+short_term_lets:
+  licensed_statuses:
+    - Licence issued                # assumption: only a licence that has been issued counts; applications, refusals and withdrawals do not
+  beds_per_bedroom: 2               # assumption: used only where the register gives no maximum occupancy
+  place_within_m: 80                # assumption: a postcode's lets go to buildings at most this far from the postcode's centre
+  spread_over_buildings: 3          # assumption: a postcode unit is a few dozen addresses on one street, so its beds go to the nearest few buildings
+
+hotels:
+  osm_tourism:                      # assumption: OpenStreetMap tourism=* values that offer beds
+    - hotel
+    - guest_house
+    - hostel
+    - motel
+    - apartment
+  overture_class:                   # assumption: Overture building classes that offer beds
+    - hotel
+    - hostel
+    - motel
+    - resort
+  m2_per_bed: 28                    # placeholder: gross floor area per bed-space in a hotel (rooms, corridors, public areas)
+
+student_halls:
+  overture_class:                   # assumption: halls of residence, empty in August and often let to visitors
+    - dormitory
+  m2_per_bed: 20                    # placeholder: gross floor area per bed in halls
+  festival_let_share: 0.5           # placeholder: share of the beds let to visitors in August
+
+citywide:
+  hotel_beds: 30000                 # placeholder: bed-spaces in Edinburgh hotels, guest houses and hostels; check against VisitScotland and ETAG figures
+
+occupancy:
+  base: 0.65                        # placeholder: share of beds occupied before the festivals add anyone
+  max: 0.98                         # assumption: no accommodation is fuller than this
+
+night_profile: [0.95, 0.95, 0.95, 0.95, 0.95, 0.93, 0.88, 0.70, 0.45, 0.25, 0.18, 0.15, 0.15, 0.15, 0.15, 0.15, 0.18, 0.22, 0.30, 0.40, 0.50, 0.60, 0.75, 0.90]  # placeholder: share of a building's guests in it at each hour of the day

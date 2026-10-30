@@ -86,6 +86,19 @@ The same datasets as the pilot, for the City of Edinburgh council area (S1200003
 - Used only to check the pipeline. They never feed the model. All are tall landmarks, so they say little about ordinary buildings.
 - Wikidata was also queried and returned no usable building heights for the area.
 
+### Festival ticket extracts (demand), read 2026-10-30
+- Files: the Fringe, EIF and Tattoo 2026 extracts in `../dataset/` (supplied for the hackathon; personal data; git-ignored and never committed). The Tattoo ticket lines also use `customers.csv` for the booker's country.
+- Used by `pipeline/stage10_demand.py` for counts only: tickets per venue and show start, and per postcode area. No name, email, customer or order reference is read into the output. Slots under 10 people are dropped. `web/public/data/demand.json` (git-ignored) holds the aggregate.
+- The Fringe extract names a venue only by number and carries no postcode, so Fringe audiences sit on assumed hubs and borrow the EIF and Tattoo origin split (`config/demand.yaml`). This is the largest assumption in the demand model.
+- EIF venue and Tattoo venue positions come from the Edinburgh festivals feed (`edinburgh_festivals` MCP) where it lists them; The Lyceum, Edinburgh Playhouse and Playfair Library are approximate public-knowledge positions (marked in `config/venues.csv`). The feed refuses a Fringe key and its Fringe demo data is fake, so neither is used.
+
+### City of Edinburgh short-term-let register (visitor accommodation), fetched 2026-10-30
+- URL: https://www.edinburgh.gov.uk/downloads/file/32198/short-term-lets (linked from https://www.edinburgh.gov.uk/licences-permits/short-term-lets-public-register), 1.7 MB `.xls`, cached in `data/raw/stl/`; checksum in `data/raw/manifest.json` (sha256 `b822551885536…`, register dated 26 Oct 2026).
+- Licence: a council public register; the page states no reuse licence. **Verify before publishing derived data.** Only status, postcode and maximum occupancy are read; the applicant and the street address are never kept, and no price field is present.
+- Result: 4,151 issued licences, 16,360 beds, 2,359 of 2,364 postcodes located.
+- Postcodes are located with postcodes.io (open, no key; only postcodes are sent), cached in `data/raw/stl/postcodes.json`. A postcode is not an address, so beds are placed on the nearest few buildings (`config/accommodation.yaml`).
+- Hotels, guest houses, hostels and halls come from the OpenStreetMap and Overture tags already fetched, with beds estimated from floor area. The citywide hotel bed count in the config is a placeholder.
+
 ## Derived outputs (not committed; rebuilt by `make m1`)
 
 `data/interim/footprints.parquet`, `data/interim/heights.parquet`, `data/interim/landmark_parts.parquet`, `data/interim/inferred_buildings.parquet`, `data/out/buildings.parquet`, `data/out/landmark_parts.parquet`, `data/out/inferred_buildings.parquet` and `data/out/buildings.pmtiles` (6,207 buildings, 120 landmark tower parts and 291 inferred buildings). Landmark parts come from the DSM plus the hand-written `config/landmarks.csv`. A full rebuild from the raw files above reproduces the outputs byte for byte. These are derived from ODbL data, so a published copy needs the attribution below and may need to be offered under ODbL (PLAN.md C3).

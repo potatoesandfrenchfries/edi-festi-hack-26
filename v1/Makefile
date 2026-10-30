@@ -33,6 +33,9 @@ economics: ## Congestion-impact constants (config/economics.yaml) to web/public/
 demand: ## Festival demand by venue, date and 15-minute slot from the ticket extracts in ../dataset (aggregates only) to web/public/data/demand.json
 	$(PY) pipeline.stage10_demand
 
+accommodation: ## Licensed short-term-let beds per postcode (public council register, cached in data/raw/stl/); rerun `make tiles` to place them
+	$(PY) pipeline.stage11_accommodation
+
 fetch: ## Download the raw data for AREA (default pilot; AREA=full is several GB; cached; see DATA_SOURCES.md)
 	$(PY) pipeline.fetch_overture
 	$(PY) pipeline.fetch_osm

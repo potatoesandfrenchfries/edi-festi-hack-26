@@ -12,6 +12,7 @@ dependencies = [
     "requests",
     "openpyxl",
     "pyyaml",
+    "xlrd>=2.0.2",
 ]
 
 [dependency-groups]

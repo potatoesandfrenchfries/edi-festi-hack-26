@@ -63,6 +63,31 @@ uv run pytest tests/test_lothian.py            # pipeline helpers, synthetic dat
 node --test lothian/web/sim.test.mjs           # simulation core
 ```
 
+## A Fringe day
+
+The build uses a typical Tuesday a week into the feed. `--date` builds any other day instead, for example a Saturday (7 November
+2026 gives 87 routes and 5,476 trips, against 99 routes and 6,125 trips on a weekday):
+
+```sh
+uv run python -m lothian.build --date 2026-11-07 --out v1/web/public/data/lothian.json
+```
+
+A route that does not run on the chosen day is left out. If the feed has no Lothian service at all on that day, the build stops and says so.
+
+**The August 2026 Fringe timetable is not downloadable any more.** BODS publishes only the current feed, and this one is dated
+22 October 2026 to 7 December 2027 (checked 30 October 2026). Its Lothian services run only to about the end of July 2027, so no
+August date, 2026 or 2027, has any trips. Where a Fringe-day feed could come from:
+
+- **The BODS feed next spring.** Operators file a few months ahead, so a feed fetched around April to June 2027 should include the
+  August 2027 timetable. Then `--date 2027-08-14` works as it is (`--force` to re-download).
+- **A past Fringe from an archive.** The University of Glasgow Urban Big Data Centre archive of BODS GTFS snapshots (2021 to June 2023,
+  every Saturday and Tuesday from February 2023; one 19.5 GB file; OGL v3.0; <https://zenodo.org/records/14779119>,
+  DOI 10.20394/dqmgka2s) should hold August 2022. Not downloaded, and not checked for Lothian coverage. A 2022 network is not the
+  2026 network (Lothian announced a network overhaul in August 2026), so it shows what a festival timetable looks like, not 2026.
+- **What happened in August 2026.** Lothian's news pages record the diversions (Princes Street closed after a fire on 9 July and
+  reopened on 29 August, about 50 routes moved to George Street and Queen Street; 15, 33 and 34 and 43, 106 and X6 rerouted from
+  5 August). That is prose, not GTFS, and is not in the simulation.
+
 ## Limits worth knowing
 
 - Fleet size is derived (about 550 buses at 1x frequency), not the real fleet. Headways come from one

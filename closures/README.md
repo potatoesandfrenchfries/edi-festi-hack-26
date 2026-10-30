@@ -26,6 +26,17 @@ restricted on this date" or to join to event data by date. A `time_to` earlier t
 `junction_closed`, `pedestrian_provision` (no ban), `withdrawn` (planned, then dropped). Filter on `bans_vehicles`
 and `status == "in_force"` for actual bans.
 
+## For the map
+
+```sh
+uv run python -m closures.web     # writes v1/web/public/data/closures.json (or `make closures` in v1/)
+```
+
+`closures.web` picks one date in the middle of the Fringe for each of the map's day types (Tuesday 11, Saturday 15 and Sunday
+16 August 2026) and lists the vehicle bans in force on it, as seconds since midnight, with the OSM way ids each covers. Overnight
+bans (Cowgate) are split across the two dates. The map joins the way ids to its car road graph, so a closure shows up there only
+if its street is in that graph. Junction closures (East Adam Street) have no street and are listed as `unmapped`.
+
 ## Caveats
 
 - **Schedule is hand-transcribed** from one page, in `schedule.py`; re-check it against the page if the council

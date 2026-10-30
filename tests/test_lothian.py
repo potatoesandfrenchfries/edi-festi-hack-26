@@ -91,3 +91,10 @@ def test_encode_shape_round_trips_and_drops_repeats():
         x += flat[i]
         y += flat[i + 1]
     assert (x, y) == (-318000, 5596000)
+
+
+def test_no_service_message_names_the_day_and_the_feed_window():
+    feed = {"feed_start_date": "20261022", "feed_end_date": "20271207"}
+    text = b.no_service_message(date(2027, 8, 14), feed)
+    assert "2027-08-14" in text and "Saturday" in text
+    assert "20261022" in text and "20271207" in text

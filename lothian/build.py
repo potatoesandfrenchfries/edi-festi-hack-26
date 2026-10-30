@@ -2,6 +2,7 @@
 
     uv run python -m lothian.build            # downloads the feed on first run (cached in lothian/data/raw/)
     uv run python -m lothian.build --force    # re-download
+    uv run python -m lothian.build --date 2027-08-14   # a chosen day (a Fringe Saturday) instead of the typical Tuesday
 
 Output: lothian/web/data/lothian.json (git-ignored; reproducible).
 
@@ -196,6 +197,13 @@ def typical_day(feed_start: str) -> date:
     return d + timedelta(days=(TYPICAL_WEEKDAY - d.weekday()) % 7)
 
 
+def no_service_message(day: date, feed: dict) -> str:
+    """Why a chosen day cannot be built. The feed is a rolling window, so a past Fringe is gone and a future one may not be filed yet."""
+    return (f"the feed has no Lothian bus service on {day} ({day:%A}). It is dated {feed['feed_start_date']} to {feed['feed_end_date']}, "
+            "but operators file timetables only a few months ahead, so its services can stop earlier. Pick a day inside the feed, "
+            "or rebuild with a feed archived for that date (see lothian/README.md, 'A Fringe day').")
+
+
 def service_runs(cal: dict | None, adds: list[int], removes: list[int], d: date) -> bool:
     di = int(d.strftime("%Y%m%d"))
     if di in removes:
@@ -219,14 +227,14 @@ def headway(starts: list[int]) -> int | None:
     return median_gap(day) if len(day) >= 3 else median_gap(starts)
 
 
-def build(force: bool = False) -> dict:
+def build(force: bool = False, chosen_day: date | None = None) -> dict:
     gtfs = fetch(force)
     routes, trips = read_lothian(gtfs)
     print(f"{len(routes)} routes, {len(trips)} trips", file=sys.stderr)
 
     with open(gtfs / "feed_info.txt", newline="", encoding="utf-8") as fh:
         feed = next(csv.DictReader(fh))
-    day = typical_day(feed["feed_start_date"])
+    day = chosen_day or typical_day(feed["feed_start_date"])
     services = {t["service_id"] for t in trips.values()}
     with open(gtfs / "calendar.txt", newline="", encoding="utf-8") as fh:
         cal = {c["service_id"]: c for c in csv.DictReader(fh) if c["service_id"] in services}
@@ -237,6 +245,8 @@ def build(force: bool = False) -> dict:
             if r["service_id"] in services:
                 (adds if r["exception_type"] == "1" else removes)[r["service_id"]].append(int(r["date"]))
     runs = {s: service_runs(cal.get(s), adds[s], removes[s], day) for s in services}
+    if chosen_day and not any(runs.values()):
+        raise SystemExit(no_service_message(day, feed))
 
     # Only trips of the typical day matter; a route that does not run that day falls back to all its trips.
     by_route: dict[str, list[str]] = defaultdict(list)
@@ -245,7 +255,8 @@ def build(force: bool = False) -> dict:
     chosen: dict[str, list[str]] = {}
     for rid, tids in by_route.items():
         on_day = [t for t in tids if runs[trips[t]["service_id"]]]
-        chosen[rid] = on_day or tids
+        if on_day or not chosen_day:  # for a chosen day, a route that does not run that day is left out
+            chosen[rid] = on_day or tids
     wanted = {t for tids in chosen.values() for t in tids}
     print(f"typical day {day} ({day:%A}): {len(wanted)} of {len(trips)} trips considered", file=sys.stderr)
 
@@ -268,7 +279,7 @@ def build(force: bool = False) -> dict:
 
     out_routes = []
     legs_by_route: dict[str, list] = {}
-    for rid in sorted(routes, key=lambda r: (routes[r]["route_short_name"].rjust(4), r)):
+    for rid in sorted((r for r in routes if r in chosen), key=lambda r: (routes[r]["route_short_name"].rjust(4), r)):
         by_dir: dict[str, list[str]] = defaultdict(list)
         for tid in chosen[rid]:
             rows = stop_times.get(tid, [])
@@ -337,7 +348,8 @@ def main() -> None:
     args = sys.argv[1:]
     # --out may be repeated: the standalone viewer and the v1 map each read their own copy.
     outs = [Path(args[i + 1]) for i, a in enumerate(args) if a == "--out" and i + 1 < len(args)] or [OUT]
-    data = build(force="--force" in args)
+    day = date.fromisoformat(args[args.index("--date") + 1]) if "--date" in args else None
+    data = build(force="--force" in args, chosen_day=day)
     text = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
     for out in outs:
         out.parent.mkdir(parents=True, exist_ok=True)

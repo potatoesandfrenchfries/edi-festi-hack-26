@@ -4,6 +4,7 @@
 import * as maplibregl from 'maplibre-gl';
 import { Car3dLayer } from './car3d';
 import { FLOATS_PER_CAR, type CarStatsMessage, type FromWorker, type ToWorker } from './cars-protocol';
+import type { TripRates, TripVenue } from './trips';
 import type { Roads } from './engine/car-sim.mjs';
 import { COLOURS, PERSONALITIES } from './engine/personality.mjs';
 
@@ -13,6 +14,8 @@ export const CARS_LAYER = 'cars-layer';
 /** Cars cost more per simulated second than buses (a step is about 0.3 ms), so they run at most this fast however fast the buses are set. */
 export const MAX_CAR_SPEED = 60;
 export const DEFAULT_POPULATION = 1500;
+/** Car slots kept for festival trips, on top of the background traffic. */
+export const TRIP_SLOTS = 1200;
 /** Most cars that can be asked for, as a multiple of the population: the car demand slider's top value, with room to spare. */
 export const MAX_DEMAND = 1.6;
 const SEED = 2026;
@@ -97,6 +100,8 @@ export class CarSimulation {
   private lastDraw = 0;
   private failed = false;
   private busStates: Float32Array | null = null;
+  private tripVenues: TripVenue[] = [];
+  private tripRates: TripRates | null = null;
   private layer3d: Car3dLayer | null = null;
   /** True if the 3D models could not be set up: the dots are then drawn instead. */
   private dotsOnly = false;
@@ -169,6 +174,17 @@ export class CarSimulation {
     this.sendRun();
   }
 
+  /** The venues cars can be sent to. Set before `start`: the worker keeps car slots for the trips when it is created. */
+  setTripVenues(venues: readonly TripVenue[]): void {
+    this.tripVenues = [...venues];
+  }
+
+  /** How many festival cars to start per simulated second at each venue (the order of `setTripVenues`). */
+  setTripRates(rates: TripRates | null): void {
+    this.tripRates = rates;
+    if (rates) this.worker?.postMessage({ type: 'trips', rates });
+  }
+
   /** Cars on the road as a multiple of the population `make cars` chose (the hour's share of the day times the demand slider). */
   setDemand(fraction: number): void {
     this.demand = Math.min(Math.max(fraction, 0), MAX_DEMAND);
@@ -200,9 +216,10 @@ export class CarSimulation {
     const worker = this.createWorker();
     this.worker = worker;
     worker.onmessage = (event) => this.receive(event.data);
-    worker.postMessage({ type: 'init', roads: this.data, population: this.data.sim?.population ?? DEFAULT_POPULATION, seed: this.data.sim?.seed ?? SEED, maxDemand: MAX_DEMAND });
+    worker.postMessage({ type: 'init', roads: this.data, population: this.data.sim?.population ?? DEFAULT_POPULATION, seed: this.data.sim?.seed ?? SEED, maxDemand: MAX_DEMAND, venues: this.tripVenues, tripSlots: TRIP_SLOTS });
     if (this.demand !== 1) worker.postMessage({ type: 'demand', fraction: this.demand });
     if (this.busStates) worker.postMessage({ type: 'buses', data: this.busStates });
+    if (this.tripRates) worker.postMessage({ type: 'trips', rates: this.tripRates });
   }
 
   private receive(message: FromWorker): void {

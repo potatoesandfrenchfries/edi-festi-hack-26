@@ -1,4 +1,5 @@
 // Messages between the main thread and the car worker (cars.worker.ts), and the packed frame layout.
+import type { TripRates, TripStats, TripVenue } from './trips';
 import type { Roads } from './engine/car-sim.mjs';
 
 export interface InitMessage {
@@ -9,6 +10,9 @@ export interface InitMessage {
   seed: number;
   /** Highest demand that will be asked for, so the engine has car slots for it. Defaults to 1. */
   maxDemand?: number;
+  /** Festival venues cars can be sent to, and how many extra car slots to keep for those trips. Without venues there are no trips. */
+  venues?: TripVenue[];
+  tripSlots?: number;
 }
 /** `fraction` is the cars on the road as a multiple of the init population: the hour's share of the day times the demand slider. */
 export interface DemandMessage {
@@ -27,7 +31,12 @@ export interface BusesMessage {
   type: 'buses';
   data: Float32Array | null;
 }
-export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage;
+/** How many festival cars to start per simulated second at each venue (in the init order), arriving and leaving, and where they come from. */
+export interface TripsMessage {
+  type: 'trips';
+  rates: TripRates;
+}
+export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage | TripsMessage;
 
 export const BUS_FLOATS = 4; // longitude, latitude, bearing (degrees), state
 export const BUS_MOVING = 0;
@@ -53,11 +62,15 @@ export interface CarStatsMessage {
   delayCarSeconds: number;
   idleCarSeconds: number;
   distanceM: number;
+  /** Festival trips since the run began; absent when no venues were given. */
+  trips?: TripStats;
 }
 export interface ReadyMessage {
   type: 'ready';
   cars: number;
   capacity: number;
+  /** For each venue given at init, whether a road lies within reach of it. */
+  venuesPlaced?: boolean[];
 }
 /** `data` holds FLOATS_PER_CAR numbers per car: longitude, latitude, bearing (degrees), speed (m/s), personality index. */
 export interface FrameMessage {

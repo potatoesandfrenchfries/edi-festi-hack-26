@@ -2,6 +2,7 @@
 // cars.worker.ts wires it to postMessage and setInterval.
 import { CarSim, mulberry32 } from './engine/car-sim.mjs';
 import { BusRoadEffects } from './car-bus-effects';
+import { TripFlow, type TripStats } from './trips';
 import { FLOATS_PER_CAR, type FromWorker, type ToWorker } from './cars-protocol';
 
 export const STEP_SECONDS = 0.2; // the engine's own step: a car moves a few metres at most
@@ -36,6 +37,11 @@ export class CarRunner {
   private cumulative: Float64Array = new Float64Array(0);
   /** Cars on the road at a demand of 1 (the init population). */
   private population = 0;
+  /** Car slots for the background traffic (up to the demand slider's top value); slots after these belong to the festival trips. */
+  private baselineSlots = 0;
+  /** Festival cars heading for venues, or null when no venues were given. */
+  private trips: TripFlow | null = null;
+  private stepCount = 0;
   /** How buses on a road slow its cars. Null until the engine exists. */
   private effects: BusRoadEffects | null = null;
   private slowedByBuses = 0;
@@ -60,18 +66,24 @@ export class CarRunner {
         // population are for demand above 1 and start switched off.
         this.population = Math.min(message.population, capacity);
         const slots = Math.min(capacity, Math.max(this.population, Math.round(message.population * (message.maxDemand ?? 1))));
-        this.sim.reseed({ population: slots });
+        const tripSlots = message.venues?.length ? Math.max(0, Math.min(message.tripSlots ?? 0, capacity - slots)) : 0;
+        this.baselineSlots = slots;
+        this.sim.reseed({ population: slots + tripSlots });
         this.effects = new BusRoadEffects(this.sim);
         this.slowedByBuses = 0;
         for (let i = this.population; i < this.sim.n; i++) this.sim.switchOff(i);
         this.random = mulberry32(message.seed + 1); // its own stream, so relief never changes where the engine places or turns cars
+        this.trips = message.venues?.length ? new TripFlow(this.sim, message.venues, message.roads.classes, slots, mulberry32(message.seed + 2)) : null;
+        this.stepCount = 0;
         this.cumulative = this.cumulativeLaneMetres(this.sim);
         this.relocated = this.sinceRelief = 0;
         this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
         this.target = this.sim.time;
-        this.post({ type: 'ready', cars: this.population, capacity });
+        this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed() });
       } else if (message.type === 'demand') {
         if (this.sim) this.applyDemand(this.sim, message.fraction);
+      } else if (message.type === 'trips') {
+        this.trips?.setRates(message.rates);
       } else if (message.type === 'buses') {
         this.slowedByBuses = this.effects?.apply(message.data) ?? 0;
       } else {
@@ -112,13 +124,16 @@ export class CarRunner {
         type: 'stats', cars: stats.fleet, averageKmh: stats.averageSpeedMps * 3.6, gridlocked: stats.gridlocked,
         achievedSpeed: this.running ? this.achieved : 0, signals: sim.signalCount, relocated: this.relocated, slowedByBuses: this.slowedByBuses,
         simSeconds: this.simAcc, delayCarSeconds: this.delayAcc, idleCarSeconds: this.idleAcc, distanceM: this.distanceAcc,
+        trips: this.trips?.stats(),
       });
       this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
     }
   }
 
   private stepOnce(sim: CarSim): void {
+    this.trips?.step(STEP_SECONDS);
     sim.step(STEP_SECONDS);
+    if (this.trips && ++this.stepCount % 5 === 0) this.trips.check();
     this.account(sim, STEP_SECONDS);
     if (this.relief && ++this.sinceRelief >= RELIEF_EVERY_STEPS) {
       this.sinceRelief = 0;
@@ -132,6 +147,18 @@ export class CarRunner {
     if (!sim) return;
     for (let t = 0; t < seconds; t += STEP_SECONDS) this.stepOnce(sim);
     this.target = sim.time;
+  }
+
+  /** The slow-traffic sums since the last call, then starts them again from zero. For headless scenario runs, which never get a stats message. */
+  takeSums(): { simSeconds: number; delayCarSeconds: number; idleCarSeconds: number; distanceM: number } {
+    const sums = { simSeconds: this.simAcc, delayCarSeconds: this.delayAcc, idleCarSeconds: this.idleAcc, distanceM: this.distanceAcc };
+    this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
+    return sums;
+  }
+
+  /** Festival trip figures since the run began, or null when no venues were given. */
+  tripFigures(): TripStats | null {
+    return this.trips?.stats() ?? null;
   }
 
   /** Where the traffic stands now: cars stopped over two minutes, mean speed, cars relocated so far. */
@@ -168,21 +195,21 @@ export class CarRunner {
 
   /** Puts the cars on the road to `fraction` of the init population: extra cars leave at their next junction, missing ones join at a road start. */
   private applyDemand(sim: CarSim, fraction: number): void {
-    const target = Math.min(sim.n, Math.max(0, Math.round(this.population * fraction)));
+    const target = Math.min(this.baselineSlots, Math.max(0, Math.round(this.population * fraction)));
     let on = 0;
-    for (let i = 0; i < sim.n; i++) if (sim.active[i] && !sim.leaving[i]) on++;
+    for (let i = 0; i < this.baselineSlots; i++) if (sim.active[i] && !sim.leaving[i]) on++;
     if (on > target) {
-      for (let i = sim.n - 1, excess = on - target; i >= 0 && excess > 0; i--) {
+      for (let i = this.baselineSlots - 1, excess = on - target; i >= 0 && excess > 0; i--) {
         if (!sim.active[i] || sim.leaving[i]) continue;
         sim.leaving[i] = 1;
         excess--;
       }
     } else if (on < target) {
       let missing = target - on;
-      for (let i = 0; i < sim.n && missing > 0; i++) {
+      for (let i = 0; i < this.baselineSlots && missing > 0; i++) {
         if (sim.active[i] && sim.leaving[i]) { sim.leaving[i] = 0; missing--; } // changed its mind before reaching a junction
       }
-      for (let i = 0; i < sim.n && missing > 0; i++) if (!sim.active[i] && this.placeCar(sim, i)) missing--;
+      for (let i = 0; i < this.baselineSlots && missing > 0; i++) if (!sim.active[i] && this.placeCar(sim, i)) missing--;
     }
   }
 
@@ -190,7 +217,10 @@ export class CarRunner {
   relieveGridlock(sim: CarSim): void {
     for (let car = 0; car < sim.n; car++) {
       if (!sim.active[car] || (sim.wait[car] as number) <= RELIEF_AFTER_S) continue;
-      if (this.placeCar(sim, car)) this.relocated++;
+      if (this.placeCar(sim, car)) {
+        this.relocated++;
+        this.trips?.reroute(car); // a festival car keeps its destination
+      }
     }
   }
 

@@ -40,6 +40,23 @@ export class CarSim {
   leaving: Uint8Array;
   group: Int32Array;
   switchOff(i: number): void;
+  /** The road graph: node count, each road's end nodes and class index, and the roads leaving (`out`, from `outStart`) and entering (`inEdges`, from `inStart`) each node. */
+  nodes: number;
+  from: Int32Array;
+  to: Int32Array;
+  cls: Uint8Array;
+  outStart: Int32Array;
+  out: Int32Array;
+  inStart: Int32Array;
+  inEdges: Int32Array;
+  nodeLon: Float64Array;
+  nodeLat: Float64Array;
+  /** Position in the route (`route[i]`) of the next road to take. */
+  routeStep: Int32Array;
+  /** Quickest route (road ids) from node `start` to node `goal` on roads that are not dead, or null. Cached until the closures change. */
+  findDetour(start: number, goal: number): Int32Array | null;
+  /** 1 for a road that is closed, or whose every way on is closed. */
+  dead: Uint8Array;
   signalCount: number;
   redHolds: number;
   // Per-car and per-road state, read and written by the gridlock relief in cars-runner.ts (the same fields the engine's own `spawn` sets).

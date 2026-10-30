@@ -73,7 +73,10 @@ def test_public_ids_flags_every_footprint_named_like_the_place():
     x, y = TO_BNG.transform(-3.1895, 55.9520)
     a, b = shapely.box(x - 20, y - 5, x - 2, y + 5), shapely.box(x + 2, y - 5, x + 20, y + 5)
     other = shapely.box(x + 500, y, x + 510, y + 10)
-    places = [{"name": "Edinburgh Waverley", "lon": "-3.1895", "lat": "55.9520"}, {"name": "Nowhere", "lon": "-3.3", "lat": "55.9"}]
+    places = [
+        {"name": "Edinburgh Waverley", "lon": "-3.1895", "lat": "55.9520"},
+        {"name": "Nowhere", "lon": "-3.3", "lat": "55.9"},
+    ]
     names = {"a": "Edinburgh Waverley", "b": "Edinburgh Waverley", "c": None}
     flagged, missed = public_ids(places, ["a", "b", "c"], [shapely.to_wkb(g) for g in (a, b, other)], names)
     assert flagged == {"a", "b"} and missed == ["Nowhere"]

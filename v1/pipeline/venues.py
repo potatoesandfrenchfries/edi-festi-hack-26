@@ -92,7 +92,11 @@ def public_ids(places, ids, geoms_wkb, osm_names=None):
         point = shapely.Point(x, y)
         candidates = tree.query(point.buffer(NAME_M)).tolist()
         names = [(osm_names or {}).get(ids[i]) for i in candidates]
-        named = [i for i, name in zip(candidates, names, strict=True) if names_match(place["name"], name) and footprints[i].distance(point) <= NAME_M]
+        named = [
+            i
+            for i, name in zip(candidates, names, strict=True)
+            if names_match(place["name"], name) and footprints[i].distance(point) <= NAME_M
+        ]
         if not named:
             index = match_venue(point, [footprints[i] for i in candidates])
             named = [] if index is None else [candidates[index]]

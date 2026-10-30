@@ -14,6 +14,7 @@ and colour breaks for the web app) and data/out/oracle.json (sampled buildings w
 """
 
 import json
+import os
 import shutil
 import subprocess
 
@@ -25,7 +26,7 @@ import yaml
 from pyproj import Transformer
 
 from pipeline import accommodation
-from pipeline.common import ROOT, scoped
+from pipeline.common import AREA, ROOT, scoped
 from pipeline.presence import density_per_1000_m2, load_profiles, presence
 from pipeline.template_values import template_values
 from pipeline.use_class import classify
@@ -35,6 +36,7 @@ INTERIM = scoped(ROOT / "data" / "interim")
 OUT = scoped(ROOT / "data" / "out")
 WEB_DATA = ROOT / "web" / "public" / "data"
 STL_BEDS = ROOT / "data" / "interim" / "stl_beds.json"  # city-wide, so not scoped to the area being built
+SERVED = WEB_DATA / "served_area.txt"  # which area's tiles and profiles the web app is showing
 TO_WGS84 = Transformer.from_crs(27700, 4326, always_xy=True)
 
 CONFIG = ROOT / "config"
@@ -81,7 +83,10 @@ def add_accommodation(table):
     postcode. Estimates: the tags carry no room counts and a postcode is not an address.
     """
     cfg = accommodation.load_config()
-    kinds = [accommodation.stay_kind(t, c, cfg) for t, c in zip(table.column("osm_tourism").to_pylist(), table.column("overture_class").to_pylist(), strict=True)]
+    kinds = [
+        accommodation.stay_kind(t, c, cfg)
+        for t, c in zip(table.column("osm_tourism").to_pylist(), table.column("overture_class").to_pylist(), strict=True)
+    ]
     areas = table.column("floor_area_m2").to_pylist()
     beds = [accommodation.tag_beds(kind, area, cfg) for kind, area in zip(kinds, areas, strict=True)]
     stl_path = STL_BEDS
@@ -94,8 +99,12 @@ def add_accommodation(table):
         kinds = [k or ("str" if b > 0 else None) for k, b in zip(kinds, placed, strict=True)]
         beds = [b + p for b, p in zip(beds, placed, strict=True)]
     else:
-        print("data/interim/stl_beds.json is missing: run `make accommodation` for the short-term-let beds. Hotels and halls only.")
-    print(f"{round(sum(beds))} visitor bed-spaces on {sum(1 for b in beds if b >= 1)} buildings ({round(lost)} short-term-let beds outside the area)")
+        print(
+            "data/interim/stl_beds.json is missing: run `make accommodation` for the short-term-let beds. Hotels and halls only."
+        )
+    print(
+        f"{round(sum(beds))} visitor bed-spaces on {sum(1 for b in beds if b >= 1)} buildings ({round(lost)} short-term-let beds outside the area)"
+    )
     return table.append_column("stay_kind", pa.array(kinds, pa.string())).append_column("beds", pa.array(beds, pa.float64()))
 
 
@@ -236,7 +245,14 @@ def build_tiles(table, parts, inferred, workdir):
         keys = {v["name"]: v["key"] for v in load_venues()}
         f.writelines(
             json.dumps(
-                to_feature({**rec, "is_venue": rec["id"] in venues, "venue_key": keys.get(venues.get(rec["id"])), "is_public": rec["id"] in public}),
+                to_feature(
+                    {
+                        **rec,
+                        "is_venue": rec["id"] in venues,
+                        "venue_key": keys.get(venues.get(rec["id"])),
+                        "is_public": rec["id"] in public,
+                    }
+                ),
                 separators=(",", ":"),
             )
             + "\n"
@@ -260,6 +276,12 @@ def build_tiles(table, parts, inferred, workdir):
     return target
 
 
+def serves(area, served, force=False):
+    """Whether a build of `area` should replace the copy the web app shows. A full-city copy is never swapped for the small pilot
+    by accident (that is how the map shrank back to the pilot); a full build always replaces, and SERVE_PILOT=1 forces the pilot."""
+    return force or served != "full" or area == "full"
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
     table = join_buildings()
@@ -271,16 +293,24 @@ def main():
     inferred = pq.read_table(INTERIM / "inferred_buildings.parquet")
     pq.write_table(inferred, OUT / "inferred_buildings.parquet", compression="zstd")
     target = build_tiles(table, parts, inferred, OUT)
-    WEB_DATA.mkdir(parents=True, exist_ok=True)
-    shutil.copy(target, WEB_DATA / "buildings.pmtiles")
     profiles = load_profiles()
-    (WEB_DATA / "profiles.json").write_text(
-        json.dumps(profiles_payload(profiles, table), separators=(",", ":"), sort_keys=True) + "\n"
-    )
-    (WEB_DATA / "accommodation.json").write_text(json.dumps(accommodation_payload(table), separators=(",", ":"), sort_keys=True) + "\n")
+    WEB_DATA.mkdir(parents=True, exist_ok=True)
+    served = SERVED.read_text().strip() if SERVED.exists() else None
+    if serves(AREA, served, os.environ.get("SERVE_PILOT") == "1"):
+        shutil.copy(target, WEB_DATA / "buildings.pmtiles")
+        (WEB_DATA / "profiles.json").write_text(
+            json.dumps(profiles_payload(profiles, table), separators=(",", ":"), sort_keys=True) + "\n"
+        )
+        (WEB_DATA / "accommodation.json").write_text(
+            json.dumps(accommodation_payload(table), separators=(",", ":"), sort_keys=True) + "\n"
+        )
+        SERVED.write_text(AREA + "\n")
+        copied = f"copied to {WEB_DATA} ({AREA})"
+    else:
+        copied = f"web copy left as the {served} city; run with SERVE_PILOT=1 to show the {AREA} instead"
     (OUT / "oracle.json").write_text(json.dumps(oracle_cases(table, profiles), indent=1, sort_keys=True) + "\n")
     print(
-        f"{table.num_rows} buildings, {parts.num_rows} landmark parts and {inferred.num_rows} inferred buildings -> {OUT / 'buildings.parquet'}, {target} ({target.stat().st_size / 1e6:.2f} MB), copied to {WEB_DATA}"
+        f"{table.num_rows} buildings, {parts.num_rows} landmark parts and {inferred.num_rows} inferred buildings -> {OUT / 'buildings.parquet'}, {target} ({target.stat().st_size / 1e6:.2f} MB), {copied}"
     )
 
 

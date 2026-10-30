@@ -1,7 +1,7 @@
 import pytest
 import shapely
 
-from pipeline.stage06_tiles import inferred_feature, part_feature, to_feature
+from pipeline.stage06_tiles import inferred_feature, part_feature, serves, to_feature
 
 
 def record(**over):
@@ -109,3 +109,13 @@ def test_profiles_payload_has_what_the_web_app_reads():
     assert payload["festival"]["min"] <= payload["festival"]["default"] <= payload["festival"]["max"]
     assert len(payload["scale"]["density_breaks"]) == len(payload["scale"]["total_breaks"]) == 5
     assert payload["scale"]["density_breaks"] == sorted(payload["scale"]["density_breaks"])
+
+
+def test_a_pilot_build_does_not_replace_the_full_city_the_web_app_shows():
+    assert not serves("pilot", "full")
+    assert serves("pilot", "full", force=True)
+
+
+def test_a_full_build_always_replaces_and_a_first_build_always_copies():
+    assert serves("full", "pilot") and serves("full", "full") and serves("full", None)
+    assert serves("pilot", None) and serves("pilot", "pilot")

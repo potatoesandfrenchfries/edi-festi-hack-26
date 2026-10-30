@@ -9,6 +9,7 @@ Modelled (never live) estimates of people active in each Edinburgh building, by 
 - `make m1` runs the M1 pipeline end to end (needs tippecanoe); `make validate-heights` rewrites `docs/height_validation.md`.
 - `make lint` checks Python style. `make fetch` downloads the pilot-area raw data into `data/raw/` (cached).
 - Run a pipeline stage on its own with `uv run python -m pipeline.stageNN_name`.
+- Festival layer: `make demand accommodation transport` then `make tiles`; `npm run scenarios` in `web/` sweeps the council's levers (slow). See `docs/festival_transport.md`.
 
 ## Rules
 

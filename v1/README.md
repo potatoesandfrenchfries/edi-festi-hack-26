@@ -50,6 +50,15 @@ Pick a day type and an hour (or press Play) to change the headline totals. Build
 
 The hourly curves are parametric shapes in `config/profiles.yaml`; colour break points, the festival range and the template densities are in `config/model.yaml`. All are placeholders.
 
+### Festival surge and the cost of getting there
+
+The **Explore** tab takes a festival date (3 to 31 August) instead of a day type, and shades buildings by the **festival surge**: audiences at venues (from the 2026 Fringe, EIF and Tattoo ticket counts) and extra guests in hotels, halls and licensed short-term lets. In the **Scenario** tab, cars drive to the venues the tickets name, and a table of configurations (bus frequency, park-and-ride, Fringe closures) shows which loses the least time, fuel and carbon. All of it is modelled: counts are real, how people travel and where Fringe venues are is assumed. See [docs/festival_transport.md](docs/festival_transport.md).
+
+```sh
+make demand accommodation transport tiles   # ticket counts, short-term-let beds, travel assumptions, then the beds on the buildings
+cd web && npm run scenarios                 # sweep the configurations for 15 August (slow); writes public/data/scenarios.json
+```
+
 ### Simulated buses
 
 The **Display** tab has a **Simulated buses** switch and a speed setting. Lothian buses run on every route, each looping end to end and back at the running times of the published timetable, spaced at a regular headway. **This is a simulation, not live positions**, and the headways come from one typical weekday. Build the data once (a public ~290 MB timetable download, no key, cached in `../lothian/`):

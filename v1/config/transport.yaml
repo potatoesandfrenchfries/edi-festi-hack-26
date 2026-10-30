@@ -1,0 +1,39 @@
+# How festival audiences travel and what the council could change (web/src/trip-demand.ts, web/src/scenario.ts).
+# Mode shares come from no survey: they are placeholders chosen to be plausible for a compact, bus-served city centre.
+# Every value carries an origin tag: placeholder, literature, calibrated or assumption.
+
+status: placeholder                 # assumption: every number below is a placeholder until checked against travel-survey or ticket-channel data
+
+modes:
+  car_share:                        # placeholder: share of each kind of booker who drive (or take a taxi) to the show
+    local: 0.12                     # placeholder: Edinburgh and Lothian residents, who mostly walk, cycle or take a bus
+    daytrip: 0.45                   # placeholder: people from Fife, Falkirk, Lanarkshire and the Borders, for whom the car is easiest
+    stay: 0.06                      # placeholder: guests in town; they walk from their bed or take a taxi
+  bus_share:                        # placeholder: share who take a bus or tram
+    local: 0.30                     # placeholder: as above
+    daytrip: 0.15                   # placeholder: as above
+    stay: 0.30                      # placeholder: as above
+  car_occupancy: 1.8                # placeholder: people per car arriving at a show (a pair or a family), higher than the commuting average
+  spill_to_car: 0.5                 # placeholder: share of riders who cannot board a full bus and then drive or take a taxi instead; the rest walk or stay away
+
+bus:
+  seats_per_bus: 70                 # placeholder: seated and standing capacity of a double-decker
+  load_factor: 0.85                 # assumption: the share of capacity at which a bus counts as full
+  festival_routes_share: 0.4        # placeholder: share of the city's bus departures that serve the festival area in a given hour
+  fallback_departures_per_hour: 600 # placeholder: used only when the bus timetable has not been built
+
+simulation:
+  sim_scale: 5                      # assumption: real vehicles represented by each simulated car; the same scale applies to the background traffic and the festival cars
+  trip_window_start_hour: 17        # assumption: first hour of the evening peak a scenario run simulates
+  trip_window_end_hour: 21          # assumption: last hour (exclusive) of the evening peak a scenario run simulates
+  warmup_minutes: 20                # assumption: minutes simulated before the window, and not counted, so the roads are not empty at the start
+
+walking:
+  speed_m_s: 1.3                    # literature: typical adult walking speed
+
+levers:
+  park_and_ride:                    # placeholder: share of out-of-town drivers (day-trip and staying) diverted to park-and-ride shuttle buses outside the area
+    min: 0                          # placeholder: no park-and-ride
+    max: 0.6                        # placeholder: most that could be diverted
+    step: 0.15                      # placeholder: sweep step
+    default: 0                      # assumption: none today

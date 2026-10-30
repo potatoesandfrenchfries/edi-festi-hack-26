@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: city help install install-py install-web install-browsers buses cars economics demand accommodation fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
+.PHONY: city help install install-py install-web install-browsers buses cars economics demand accommodation transport fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
         test test-py test-web test-e2e lint web-dev web-build clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
@@ -35,6 +35,9 @@ demand: ## Festival demand by venue, date and 15-minute slot from the ticket ext
 
 accommodation: ## Licensed short-term-let beds per postcode (public council register, cached in data/raw/stl/); rerun `make tiles` to place them
 	$(PY) pipeline.stage11_accommodation
+
+transport: ## Festival travel assumptions (config/transport.yaml) to web/public/data/transport.json
+	$(PY) pipeline.stage12_transport
 
 fetch: ## Download the raw data for AREA (default pilot; AREA=full is several GB; cached; see DATA_SOURCES.md)
 	$(PY) pipeline.fetch_overture

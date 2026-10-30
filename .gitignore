@@ -2,8 +2,12 @@
 dataset/*
 datasets/*
 !dataset/.gitkeep
+!dataset/README.md
 !datasets/.gitkeep
 data/
+
+# pipeline output: aggregates derived from sensitive data
+reports/
 
 # secrets
 .env

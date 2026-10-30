@@ -40,7 +40,7 @@ export interface Accommodation {
   status: string;
   occupancy: { base: number; max: number };
   night_profile: number[];
-  pilot_beds: Record<string, number>;
+  area_beds: Record<string, number>;
   city_beds: { str: number; hotel: number };
 }
 
@@ -113,7 +113,7 @@ export const baseOccupancy = (acc: Accommodation): number => acc.occupancy.base;
  * base guests are there with or without a festival. Each bed holds a guest that hour with the night profile's probability.
  */
 export function festivalGuestsIn(acc: Accommodation, demand: Demand, date: string, hour: number): number {
-  const beds = Object.values(acc.pilot_beds).reduce((sum, n) => sum + n, 0);
+  const beds = Object.values(acc.area_beds).reduce((sum, n) => sum + n, 0);
   return beds * Math.max(occupancyOn(acc, demand, date) - baseOccupancy(acc), 0) * (acc.night_profile[hour] ?? 0);
 }
 

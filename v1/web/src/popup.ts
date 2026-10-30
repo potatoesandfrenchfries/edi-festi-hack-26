@@ -9,12 +9,18 @@ export interface BuildingProps extends ValueProps {
   height_conf?: string;
   height_flag?: string;
   use_src?: string;
+  /** Visitor bed-spaces (hotels, halls, licensed short-term lets) and the festival venue key, when the tiles carry them. */
+  beds?: number;
+  stay?: string;
+  venue?: string;
 }
 
 export interface PopupState {
   day: DayType;
   hour: number;
   festival: number;
+  /** The festival's extra people in this building at this date and hour (festival-layer.ts), when the festival data is loaded. */
+  surge?: { audience: number; guests: number; date: string };
 }
 
 export interface PopupContent {
@@ -59,6 +65,15 @@ export function describeBuilding(props: BuildingProps, state: PopupState, profil
     ['Per 1000 m² of floor area', `about ${formatPeople(now.density)}`],
     ['Of which', `residents ${formatPeople(now.residents)}, workers ${formatPeople(now.workers)}`],
   ];
+  const surge = state.surge;
+  if (surge && (surge.audience >= 1 || surge.guests >= 1)) {
+    const parts = [];
+    if (surge.audience >= 1) parts.push(`about ${formatPeople(surge.audience)} at the show or shows`);
+    if (surge.guests >= 1) parts.push(`about ${formatPeople(surge.guests)} extra guests staying (${props.beds ?? 0} bed-spaces)`);
+    rows.push([`Festival surge, ${hourLabel(state.hour)}`, parts.join('; ')]);
+  } else if (props.beds && props.beds >= 1) {
+    rows.push(['Visitor beds', `${props.beds} bed-spaces (${props.stay === 'hotel' ? 'hotel or similar' : props.stay === 'halls' ? 'halls of residence' : 'licensed short-term lets'})`]);
+  }
   const flags: string[] = [];
   if (props.height_conf === 'low') flags.push('Low confidence in the height');
   if (props.height_flag) flags.push(`Height flag: ${props.height_flag.replaceAll('_', ' ')}`);

@@ -22,7 +22,7 @@ const acc: Accommodation = {
   status: 'placeholder',
   occupancy: { base: 0.6, max: 0.98 },
   night_profile: Array.from({ length: 24 }, (_, h) => (h < 8 ? 1 : 0.2)),
-  pilot_beds: { hotel: 800, str: 200 },
+  area_beds: { hotel: 800, str: 200 },
   city_beds: { str: 4000, hotel: 6000 },
 };
 const state = { date: '2026-08-15', hour: 20 };

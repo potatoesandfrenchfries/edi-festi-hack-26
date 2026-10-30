@@ -35,7 +35,7 @@ export interface SurgeState {
 /** Extra guests per bed at an hour: occupancy above the base level, times the share of guests in the building then. */
 export function guestsPerBed(acc: Accommodation | null, demand: Demand, state: SurgeState): number {
   if (!acc) return 0;
-  const beds = Object.values(acc.pilot_beds).reduce((sum, n) => sum + n, 0);
+  const beds = Object.values(acc.area_beds).reduce((sum, n) => sum + n, 0);
   return beds > 0 ? festivalGuestsIn(acc, demand, state.date, state.hour) / beds : 0;
 }
 
@@ -108,7 +108,7 @@ export class FestivalLayer {
       source: CROWD_SOURCE,
       layout: { visibility: this.visible ? 'visible' : 'none' },
       paint: {
-        'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, radius(0.12), 17, radius(0.55)] as unknown as ExpressionSpecification,
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, radius(0.25), 17, radius(1.1)] as unknown as ExpressionSpecification,
         'circle-color': dark ? '#c9a2ff' : '#7b2fbe',
         'circle-opacity': 0.4,
         'circle-stroke-color': dark ? '#e6d4ff' : '#4b1c7a',
@@ -135,7 +135,7 @@ export class FestivalLayer {
   headline(): { guests: number; audience: number; occupancy: number } | null {
     if (!this.state || !this.accommodation) return null;
     const { date, hour } = this.state;
-    const beds = Object.values(this.accommodation.pilot_beds).reduce((sum, n) => sum + n, 0);
+    const beds = Object.values(this.accommodation.area_beds).reduce((sum, n) => sum + n, 0);
     const audience = Object.values(this.demand.venues).reduce((sum, v) => sum + presentAt(this.demand, v, date, hour), 0);
     return { guests: beds * guestsPerBed(this.accommodation, this.demand, this.state), audience, occupancy: occupancyOn(this.accommodation, this.demand, date) };
   }

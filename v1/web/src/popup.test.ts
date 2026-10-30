@@ -55,3 +55,21 @@ describe('formatting', () => {
     expect(formatCount(154792)).toBe('154,800');
   });
 });
+
+describe('festival surge in the popup', () => {
+  const props = { id: 'h', height_m: 20, height_src: 'lidar', beds: 120, stay: 'hotel' };
+  it('says how many people the festival puts there, from the audience and from guests', () => {
+    const { rows } = describeBuilding(props, { ...at, surge: { audience: 800, guests: 36.4, date: '2026-08-15' } }, profiles);
+    const surge = rows.find(([label]) => label.startsWith('Festival surge'));
+    expect(surge?.[1]).toContain('about 800 at the show');
+    expect(surge?.[1]).toContain('36 extra guests staying (120 bed-spaces)');
+  });
+  it('without a surge but with beds, it names the kind of accommodation', () => {
+    expect(describeBuilding(props, at, profiles).rows.find(([label]) => label === 'Visitor beds')?.[1]).toBe('120 bed-spaces (hotel or similar)');
+    expect(describeBuilding({ ...props, stay: 'str' }, at, profiles).rows.find(([label]) => label === 'Visitor beds')?.[1]).toContain('short-term lets');
+  });
+  it('adds nothing for a building with no surge and no beds', () => {
+    const { rows } = describeBuilding({ id: 'x', height_m: 8, height_src: 'default' }, { ...at, surge: { audience: 0, guests: 0, date: '2026-08-15' } }, profiles);
+    expect(rows.some(([label]) => label.startsWith('Festival') || label === 'Visitor beds')).toBe(false);
+  });
+});

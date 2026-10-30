@@ -14,3 +14,7 @@ test-results/
 
 # built tiles are copied here for the dev server
 web/public/data/
+
+# Vercel link and prebuilt output
+.vercel/
+web/.vercel/

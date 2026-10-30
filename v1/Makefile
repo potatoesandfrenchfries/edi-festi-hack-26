@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 .PHONY: city help install install-py install-web install-browsers buses cars economics closures demand accommodation transport revenue fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
-        test test-py test-web test-e2e lint web-dev web-build clean
+        test test-py test-web test-e2e lint web-dev web-build web-deploy clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
 AREA ?= pilot
@@ -91,6 +91,8 @@ web-dev: ## Start the web app (Vite uses the next free port if 5173 is taken)
 	$(WEB) run dev
 web-build: ## Production build of the web app into web/dist
 	$(WEB) run build
+web-deploy: ## Deploy the web app to Vercel from this machine (the built data in web/public/data is gitignored, so the build must be local); `PROD=1` for production, otherwise a preview
+	cd web && npx --yes vercel@65.8.0 build $(if $(PROD),--prod) && npx --yes vercel@65.8.0 deploy --prebuilt $(if $(PROD),--prod)
 
 clean: ## Remove build output and caches (raw data in data/ is kept)
 	rm -rf web/dist web/test-results .pytest_cache .ruff_cache

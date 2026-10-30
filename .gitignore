@@ -43,3 +43,4 @@ web/public/data/
 # misc
 .DS_Store
 *.log
+.vercel

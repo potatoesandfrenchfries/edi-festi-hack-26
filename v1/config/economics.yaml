@@ -1,0 +1,39 @@
+# Road-congestion impact model (web/src/impact.ts): time, fuel and emissions lost to slow traffic. A modelled estimate, never a measurement
+# (design rule 6 exception, rule 5). Every value carries an origin tag: placeholder, literature, calibrated or assumption.
+# Nothing here is calibrated. Values marked placeholder name the source to check them against before they are quoted anywhere.
+
+status: placeholder                 # assumption: every number below is a placeholder until calibrated
+
+time:
+  value_of_time_gbp_per_hour: 16.0  # placeholder: average value of a person's time per hour; check against the DfT TAG data book (working vs non-working time)
+  car_occupancy: 1.3                # placeholder: people per car; check against DfT NTS car occupancy
+  bus_passengers_per_bus: 18        # placeholder: average load on a bus in service; the GTFS carries no ridership
+
+fuel:
+  car_price_gbp_per_litre: 1.45     # placeholder: blended petrol and diesel pump price; check against DESNZ weekly road fuel prices
+  bus_price_gbp_per_litre: 1.2      # placeholder: bulk diesel, no duty rebate modelled
+  car_idle_litres_per_hour: 0.8     # placeholder: a warm car idling; check against COPERT or a vehicle test
+  car_litres_per_km: 0.075          # placeholder: urban driving, blended petrol and diesel
+  bus_idle_litres_per_hour: 2.5     # placeholder: city bus idling; the GTFS gives no fuel type, a diesel or hybrid bus is assumed
+  bus_litres_per_km: 0.38           # placeholder: city bus, diesel
+
+emissions:
+  car_kg_co2e_per_litre: 2.4        # placeholder: blended petrol and diesel; check against DESNZ greenhouse gas conversion factors
+  bus_kg_co2e_per_litre: 2.6        # placeholder: diesel; check against DESNZ greenhouse gas conversion factors
+  carbon_value_gbp_per_tonne: 280.0 # placeholder: value of a tonne of CO2e; check against DfT TAG carbon values
+
+scale:
+  fleet_scale: 1.0                  # assumption: 1 reports the simulated vehicles only; raise it to scale the pilot sample up to a real fleet
+
+demand:
+  car_hourly_profile: [0.10, 0.07, 0.06, 0.06, 0.10, 0.25, 0.55, 0.90, 1.00, 0.80, 0.65, 0.65, 0.70, 0.65, 0.65, 0.75, 0.90, 1.00, 0.85, 0.55, 0.40, 0.30, 0.20, 0.14]  # placeholder: share of the simulated cars on the road each hour, peaks at 08:00 and 17:00
+  car_demand:
+    min: 0.25                       # placeholder: slider lower bound, as a multiple of the hourly profile
+    max: 1.5                        # placeholder: slider upper bound
+    step: 0.05                      # placeholder: slider step
+    default: 1.0                    # assumption: the profile as written
+  bus_frequency:
+    min: 0.25                       # placeholder: slider lower bound, as a multiple of today's timetable frequency
+    max: 3.0                        # placeholder: slider upper bound
+    step: 0.25                      # placeholder: slider step
+    default: 1.0                    # assumption: the timetable as written

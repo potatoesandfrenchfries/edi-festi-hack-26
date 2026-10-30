@@ -1,0 +1,40 @@
+# Road network for the simulated cars (pipeline/roads.py). Every value carries an origin tag in its comment:
+# placeholder, literature, calibrated or assumption. None of this is calibrated against traffic counts.
+
+classes:                            # assumption: OSM highway classes cars may use. Service roads (car parks, drive-throughs) are left out
+  - motorway
+  - motorway_link
+  - trunk
+  - trunk_link
+  - primary
+  - primary_link
+  - secondary
+  - secondary_link
+  - tertiary
+  - tertiary_link
+  - unclassified
+  - residential
+  - living_street
+
+speed_defaults_mph:                 # used only where a way has no maxspeed tag
+  motorway: 70                      # literature: UK national speed limit, dual carriageway
+  motorway_link: 50                 # assumption: slip roads
+  trunk: 40                         # assumption: urban trunk road
+  trunk_link: 40                    # assumption: slip roads
+  primary: 30                       # literature: UK built-up area limit
+  primary_link: 30                  # literature: UK built-up area limit
+  secondary: 30                     # literature: UK built-up area limit
+  secondary_link: 30                # literature: UK built-up area limit
+  tertiary: 20                      # assumption: Edinburgh's 20 mph network covers most minor roads
+  tertiary_link: 20                 # assumption: as above
+  unclassified: 20                  # assumption: as above
+  residential: 20                   # assumption: as above
+  living_street: 10                 # assumption: shared space, walking-pace traffic
+
+signals:
+  snap_metres: 25                   # placeholder: a traffic_signals node this close to a junction makes it signalised
+
+cars:
+  population_share: 0.06            # placeholder: simulated cars as a share of the network's safe capacity (one per 7.5 m of lane). 0.12 gridlocks too often even with relief
+  max_population: 6000              # placeholder: cap so a browser worker keeps up
+  seed: 2026                        # assumption: fixes personalities and placement, so a run repeats

@@ -11,9 +11,11 @@ CONFIG = ROOT / "config"
 ORIGIN = re.compile(r"#\s*(placeholder|literature|calibrated|assumption)\b")
 USE_CLASSES = {"residential", "retail", "office", "hospitality", "education", "civic", "industrial", "mixed", "unknown"}
 FORBIDDEN = re.compile(r"\b(cost|price|rent|rateable|rateable_value|economic)\b", re.IGNORECASE)
+PROPERTY_FORBIDDEN = re.compile(r"\b(rent|rateable|rateable_value|property_price)\b", re.IGNORECASE)
+TRAFFIC_IMPACT = {"economics.yaml"}  # design rule 6 exception: modelled road-congestion impact, labelled as an estimate
 
 
-@pytest.mark.parametrize("name", ["model.yaml", "use_weights.yaml", "profiles.yaml"])
+@pytest.mark.parametrize("name", ["model.yaml", "use_weights.yaml", "profiles.yaml", "roads.yaml", "economics.yaml"])
 def test_every_value_states_its_origin(name):
     """Design rule 8: every tunable has a comment saying whether it is a placeholder, literature, calibrated or an assumption."""
     for number, line in enumerate((CONFIG / name).read_text().splitlines(), 1):
@@ -54,7 +56,9 @@ def test_wgs84_bbox_matches_the_bng_bbox():
 
 
 def test_no_cost_fields_in_config():
-    """Design rule 6: no cost, price, rent or rateable-value fields anywhere."""
+    """Design rule 6: no cost, price, rent or rateable-value fields in the building config. The traffic-impact file is exempt from
+    the cost and price words only; it still may not carry rent or rateable-value keys."""
     for path in CONFIG.iterdir():
         keys = re.findall(r"^\s*\"?([A-Za-z_]+)\"?\s*:", path.read_text(), re.MULTILINE)
-        assert not [k for k in keys if FORBIDDEN.search(k)], f"{path.name} has a cost-like key"
+        rule = PROPERTY_FORBIDDEN if path.name in TRAFFIC_IMPACT else FORBIDDEN
+        assert not [k for k in keys if rule.search(k)], f"{path.name} has a cost-like key"

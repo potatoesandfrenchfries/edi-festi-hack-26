@@ -28,6 +28,7 @@ from pipeline.common import ROOT, scoped
 from pipeline.presence import density_per_1000_m2, load_profiles, presence
 from pipeline.template_values import template_values
 from pipeline.use_class import classify
+from pipeline.venues import PUBLIC_BUILDINGS, load_venues, public_ids, venue_ids
 
 INTERIM = scoped(ROOT / "data" / "interim")
 OUT = scoped(ROOT / "data" / "out")
@@ -48,7 +49,7 @@ HEIGHT_COLUMNS = ["height_m", "height_src", "height_conf", "height_flag", "floor
 
 
 def join_buildings():
-    """Footprints plus heights, one row per building, sorted by id. Contains no cost, price or value fields."""
+    """Footprints plus heights, one row per building, sorted by id. Contains no rent, rateable-value or price fields."""
     footprints, heights = pq.read_table(INTERIM / "footprints.parquet"), pq.read_table(INTERIM / "heights.parquet")
     table = footprints.join(heights.select(["id", *HEIGHT_COLUMNS]), keys="id", join_type="inner")
     assert table.num_rows == footprints.num_rows == heights.num_rows, "footprints and heights must cover the same buildings"
@@ -88,6 +89,10 @@ def to_feature(rec):
         props["height_flag"] = rec["height_flag"]
     if rec["osm_name"]:
         props["name"] = rec["osm_name"]
+    if rec.get("is_venue"):
+        props["is_venue"] = True
+    if rec.get("is_public"):
+        props["is_public"] = True
     return {"type": "Feature", "properties": props, "geometry": json.loads(shapely.to_geojson(shapely.set_precision(geom, 1e-7)))}
 
 
@@ -172,7 +177,16 @@ def build_tiles(table, parts, inferred, workdir):
         raise SystemExit("tippecanoe not found on PATH. Install it with: brew install tippecanoe")
     source = workdir / "buildings.geojsonl"
     with open(source, "w") as f:
-        f.writelines(json.dumps(to_feature(rec), separators=(",", ":")) + "\n" for rec in table.to_pylist())
+        ids = table.column("id").to_pylist()
+        names = dict(zip(ids, table.column("osm_name").to_pylist(), strict=True))
+        venues, missed = venue_ids(load_venues(), ids, table.column("geom_wkb").to_pylist(), names)
+        print(f"{len(venues)} festival venue buildings flagged; no building for: {', '.join(missed) or 'none'}")
+        public, missed = public_ids(load_venues(PUBLIC_BUILDINGS), ids, table.column("geom_wkb").to_pylist(), names)
+        print(f"{len(public)} public building footprints flagged; no building for: {', '.join(missed) or 'none'}")
+        f.writelines(
+            json.dumps(to_feature({**rec, "is_venue": rec["id"] in venues, "is_public": rec["id"] in public}), separators=(",", ":")) + "\n"
+            for rec in table.to_pylist()
+        )
     parts_source = workdir / "landmark_parts.geojsonl"
     with open(parts_source, "w") as f:
         parents = {rec["id"]: rec for rec in table.to_pylist()}

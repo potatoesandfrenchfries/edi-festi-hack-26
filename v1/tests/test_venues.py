@@ -65,7 +65,7 @@ def test_a_tent_flags_no_building_even_with_one_under_it():
 
 def test_venues_csv_has_one_kind_per_row_and_the_spiegeltent_is_a_tent():
     kinds = {v["name"]: v["kind"] for v in load_venues()}
-    assert set(kinds.values()) <= {"building", "tent"}
+    assert set(kinds.values()) <= {"building", "tent", "ground"}
     assert kinds["George Square Spiegeltent"] == "tent"
 
 

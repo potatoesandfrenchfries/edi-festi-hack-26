@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: city help install install-py install-web install-browsers buses cars economics fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
+.PHONY: city help install install-py install-web install-browsers buses cars economics demand accommodation fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
         test test-py test-web test-e2e lint web-dev web-build clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
@@ -29,6 +29,9 @@ cars: ## Road graph for the simulated cars: OSM roads from Overpass (cached), th
 
 economics: ## Congestion-impact constants (config/economics.yaml) to web/public/data/economics.json
 	$(PY) pipeline.stage09_economics
+
+demand: ## Festival demand by venue, date and 15-minute slot from the ticket extracts in ../dataset (aggregates only) to web/public/data/demand.json
+	$(PY) pipeline.stage10_demand
 
 fetch: ## Download the raw data for AREA (default pilot; AREA=full is several GB; cached; see DATA_SOURCES.md)
 	$(PY) pipeline.fetch_overture

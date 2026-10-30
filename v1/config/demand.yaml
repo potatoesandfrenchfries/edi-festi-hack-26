@@ -1,0 +1,97 @@
+# Festival demand model (pipeline/demand.py): how many people are at each venue, and where they come from, by date and 15-minute slot.
+# Ticket counts come from the festivals' sales extracts and are aggregates only. Everything below that is not a count is an assumption.
+# Every value carries an origin tag: placeholder, literature, calibrated or assumption.
+
+status: placeholder                 # assumption: timing and origin splits below are placeholders until checked against gate or scan data
+
+season:
+  year: 2026                        # assumption: the 2026 festival season is modelled
+  slot_minutes: 15                  # assumption: demand is resolved to 15-minute slots
+
+timing:
+  arrive_before_min: 30             # placeholder: attendees arrive evenly over this many minutes before the start
+  leave_after_min: 20               # placeholder: attendees leave evenly over this many minutes after the end
+  fringe_duration_min: 60           # placeholder: the Fringe extract has a start time only; a typical hour-long show
+  eif_duration_min: 105             # placeholder: mean of the EIF listing's durations, which the ticket extract does not carry
+  tattoo_duration_min: 90           # literature: 90 minutes per the Tattoo's listing on the festivals feed
+
+suppression:
+  min_cell: 10                      # assumption: a slot with fewer people than this at a venue is dropped, as for every report (pipeline/config.py MIN_CELL)
+
+# Fringe tickets carry a numeric Venue_ID and nothing that names or places it, and the festivals feed refuses a Fringe key. So each venue's
+# audience is assigned to the nearest of these hubs (largest venue first, keeping each hub's share of Fringe tickets near its weight).
+# Centres are approximate public-knowledge positions, not measured; weights are placeholders. The hubs lie inside the modelled road area.
+fringe_hubs:
+  - key: hub_bristo                 # assumption: Bristo Square, Teviot and George Square cluster
+    name: Bristo Square and George Square  # assumption: label shown in the app
+    lon: -3.1890                    # assumption: approximate
+    lat: 55.9446                    # assumption: approximate
+    weight: 0.25                    # placeholder: share of Fringe tickets
+  - key: hub_pleasance  # assumption: stable id used in demand.json
+    name: Pleasance and Holyrood Road  # assumption: label shown in the app
+    lon: -3.1815                    # assumption: approximate
+    lat: 55.9476                    # assumption: approximate
+    weight: 0.15                    # placeholder: share of Fringe tickets
+  - key: hub_royal_mile  # assumption: stable id used in demand.json
+    name: Royal Mile and High Street  # assumption: label shown in the app
+    lon: -3.1905                    # assumption: approximate
+    lat: 55.9500                    # assumption: approximate
+    weight: 0.15                    # placeholder: share of Fringe tickets
+  - key: hub_grassmarket  # assumption: stable id used in demand.json
+    name: Grassmarket and Lawnmarket  # assumption: label shown in the app
+    lon: -3.1963                    # assumption: approximate
+    lat: 55.9477                    # assumption: approximate
+    weight: 0.10                    # placeholder: share of Fringe tickets
+  - key: hub_george_street  # assumption: stable id used in demand.json
+    name: George Street and the Assembly Rooms  # assumption: label shown in the app
+    lon: -3.1990                    # assumption: approximate
+    lat: 55.9531                    # assumption: approximate
+    weight: 0.12                    # placeholder: share of Fringe tickets
+  - key: hub_mound  # assumption: stable id used in demand.json
+    name: The Mound and Princes Street  # assumption: label shown in the app
+    lon: -3.1955                    # assumption: approximate
+    lat: 55.9505                    # assumption: approximate
+    weight: 0.06                    # placeholder: share of Fringe tickets
+  - key: hub_cowgate  # assumption: stable id used in demand.json
+    name: Cowgate and Blair Street  # assumption: label shown in the app
+    lon: -3.1860                    # assumption: approximate
+    lat: 55.9488                    # assumption: approximate
+    weight: 0.09                    # placeholder: share of Fringe tickets
+  - key: hub_playhouse  # assumption: stable id used in demand.json
+    name: Playhouse and York Place  # assumption: label shown in the app
+    lon: -3.1840                    # assumption: approximate
+    lat: 55.9570                    # assumption: approximate
+    weight: 0.08                    # placeholder: share of Fringe tickets
+
+# EIF "Venue Name" -> venue key in config/venues.csv. A name not listed here is reported and left out.
+eif_venues:
+  Usher Hall: usher_hall  # assumption: extract venue name to venues.csv key
+  The Queen's Hall: queens_hall  # assumption: extract venue name to venues.csv key
+  Festival Theatre: festival_theatre  # assumption: extract venue name to venues.csv key
+  King's Theatre: kings_theatre  # assumption: extract venue name to venues.csv key
+  The Lyceum: lyceum  # assumption: extract venue name to venues.csv key
+  Edinburgh Playhouse: playhouse  # assumption: extract venue name to venues.csv key
+  Playfair Library: playfair_library  # assumption: extract venue name to venues.csv key
+  The Hub: the_hub  # assumption: extract venue name to venues.csv key
+  Studio Theatre: studio_theatre  # assumption: extract venue name to venues.csv key
+  Church Hill Theatre: church_hill_theatre  # assumption: extract venue name to venues.csv key
+
+tattoo_venue: tattoo_esplanade      # assumption: every Tattoo ticket is for the Castle Esplanade
+
+# Where a booker lives decides whether they need a bed. The postcode area is the leading letters of the postcode.
+origin:
+  local_areas:                      # assumption: Edinburgh and the Lothians; these people go home after the show
+    - EH
+  daytrip_areas:                    # assumption: close enough to travel in and out the same day, so they use roads but no bed
+    - FK
+    - KY
+    - ML
+    - TD
+  shows_per_person_per_day: 2.0     # placeholder: tickets per attendee per day, to turn tickets into people for beds
+  fringe_origin_from: [eif, tattoo] # assumption: the Fringe extract carries no postcode, so it borrows the equal-weight mean of these sources' origin splits (sensitive: EIF is 26% stay, Tattoo 87%)
+
+# Compass sector of a postcode area from Edinburgh: which gateway road a visitor's car enters by. Areas not listed (EH, abroad) have none.
+sectors:
+  north: [KY, DD, PH, AB, IV, HS, KW, ZE]  # assumption: via the Forth crossings and Queensferry Road
+  west: [G, PA, KA, ML, FK, DG, HG]         # assumption: via the A8 and the Glasgow roads
+  south: [TD, NE, CA, DH, SR, DL, TS, YO, LS, S, M, B, L, W, SW, SE, N, E, NW, EC, WC, BS, CF, OX, CB]  # assumption: via the A7, A68 and the bypass

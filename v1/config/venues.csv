@@ -1,15 +1,21 @@
-name,lon,lat,kind,festival,source
-George Square Spiegeltent,-3.188285,55.943860,tent,Jazz and Blues; Book,"Event data from the Edinburgh festivals MCP (edinburgh_festivals); the tent is placed in the open middle of George Square Gardens (OSM way 4075023), not at the MCP point, which falls on a university building"
-The Jazz Bar,-3.187034,55.947959,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location
-St Bride's Centre,-3.2206615406,55.9428157391,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location
-The Queen's Hall,-3.1817441900,55.9414250262,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Leith Arches,-3.172179,55.968713,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location
-North Merchiston Club,-3.223202,55.937075,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location
-McEwan Hall,-3.190305,55.94441,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location
-National Museum of Scotland,-3.1897337835,55.9471797116,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Festival Theatre,-3.1863227448,55.9466465158,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Studio Theatre,-3.1871797514,55.9463956535,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Usher Hall,-3.2050666282,55.9474530242,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location
-King's Theatre,-3.2028120421,55.9418770882,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Central Hall,-3.204241,55.943565,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location
-Edinburgh Futures Institute,-3.1925623,55.9445646,building,Book,Edinburgh festivals MCP (edinburgh_festivals) venue location
+name,lon,lat,kind,festival,source,key
+George Square Spiegeltent,-3.188285,55.943860,tent,Jazz and Blues; Book,"Event data from the Edinburgh festivals MCP (edinburgh_festivals); the tent is placed in the open middle of George Square Gardens (OSM way 4075023), not at the MCP point, which falls on a university building",spiegeltent
+The Jazz Bar,-3.187034,55.947959,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location,jazz_bar
+St Bride's Centre,-3.2206615406,55.9428157391,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location,st_brides
+The Queen's Hall,-3.1817441900,55.9414250262,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location,queens_hall
+Leith Arches,-3.172179,55.968713,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location,leith_arches
+North Merchiston Club,-3.223202,55.937075,building,Jazz and Blues,Edinburgh festivals MCP (edinburgh_festivals) venue location,north_merchiston
+McEwan Hall,-3.190305,55.94441,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location,mcewan_hall
+National Museum of Scotland,-3.1897337835,55.9471797116,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location,nms
+Festival Theatre,-3.1863227448,55.9466465158,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,festival_theatre
+Studio Theatre,-3.1871797514,55.9463956535,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,studio_theatre
+Usher Hall,-3.2050666282,55.9474530242,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,usher_hall
+King's Theatre,-3.2028120421,55.9418770882,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,kings_theatre
+Central Hall,-3.204241,55.943565,building,Science,Edinburgh festivals MCP (edinburgh_festivals) venue location,central_hall
+Edinburgh Futures Institute,-3.1925623,55.9445646,building,Book,Edinburgh festivals MCP (edinburgh_festivals) venue location,efi
+The Hub,-3.1959953407,55.9487544503,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,the_hub
+Church Hill Theatre,-3.2098191447,55.9324545562,building,International,Edinburgh festivals MCP (edinburgh_festivals) venue location,church_hill_theatre
+The Lyceum,-3.2063,55.9464,building,International,"Approximate public-knowledge position, not from the festivals feed: check before relying on it",lyceum
+Edinburgh Playhouse,-3.1827,55.9575,building,International,"Approximate public-knowledge position, not from the festivals feed: check before relying on it",playhouse
+Playfair Library,-3.1883,55.9472,building,International,"Approximate public-knowledge position, not from the festivals feed: check before relying on it",playfair_library
+Edinburgh Castle Esplanade,-3.1978927,55.94875,ground,Tattoo,"Edinburgh festivals MCP (edinburgh_festivals) venue location; open ground, so no footprint is flagged",tattoo_esplanade

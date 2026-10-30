@@ -1,0 +1,41 @@
+# datasets are large and reproducible; keep the folder, not the contents
+dataset/*
+datasets/*
+!dataset/.gitkeep
+!datasets/.gitkeep
+data/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# environments and dependencies
+.venv/
+venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+
+# build output
+dist/
+test-results/
+
+# large geospatial / data file formats
+*.parquet
+*.pmtiles
+*.geojsonl
+*.tif
+*.tiff
+*.gpkg
+*.shp
+*.mbtiles
+*.pbf
+*.duckdb
+
+# built tiles copied for the dev server
+web/public/data/
+
+# misc
+.DS_Store
+*.log

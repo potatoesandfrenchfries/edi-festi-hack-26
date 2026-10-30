@@ -25,7 +25,7 @@ def validate(config):
             raise ValueError(f"modes: {cls} car {car} and bus {bus} must each be in 0..1 and sum to at most 1")
     if not 0 <= modes["spill_to_car"] <= 1:
         raise ValueError("modes.spill_to_car must be in 0..1")
-    for section, keys in (("modes", ("car_occupancy",)), ("bus", ("seats_per_bus", "load_factor", "festival_routes_share", "fallback_departures_per_hour")),
+    for section, keys in (("modes", ("car_occupancy",)), ("bus", ("seats_per_bus", "load_factor", "festival_routes_share", "fallback_departures_per_hour", "shuttle_km", "turned_away_hours")),
                            ("simulation", ("sim_scale",)), ("walking", ("speed_m_s",))):  # fmt: skip
         for key in keys:
             if not config[section][key] > 0:
@@ -34,6 +34,8 @@ def validate(config):
     if not 0 <= sim["trip_window_start_hour"] < sim["trip_window_end_hour"] <= 24:
         raise ValueError("simulation: the trip window needs 0 <= start < end <= 24")
     lever = config["levers"]["park_and_ride"]
+    if not lever["extra_minutes"] >= 0:
+        raise ValueError("levers.park_and_ride.extra_minutes must not be negative")
     if not (0 <= lever["min"] <= lever["default"] <= lever["max"] <= 1 and lever["step"] > 0):
         raise ValueError("levers.park_and_ride needs 0 <= min <= default <= max <= 1 and a positive step")
 

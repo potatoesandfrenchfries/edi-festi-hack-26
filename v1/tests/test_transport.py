@@ -32,6 +32,8 @@ def test_the_shipped_config_is_valid_and_marked_placeholder():
         (("bus", "seats_per_bus"), 0),
         (("simulation", "trip_window_end_hour"), 10),
         (("levers", "park_and_ride", "default"), 0.9),
+        (("levers", "park_and_ride", "extra_minutes"), -5),
+        (("bus", "turned_away_hours"), 0),
     ],
 )
 def test_incoherent_values_are_refused(path, value):

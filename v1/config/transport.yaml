@@ -21,11 +21,13 @@ bus:
   load_factor: 0.85                 # assumption: the share of capacity at which a bus counts as full
   festival_routes_share: 0.4        # placeholder: share of the city's bus departures that serve the festival area in a given hour
   fallback_departures_per_hour: 600 # placeholder: used only when the bus timetable has not been built
+  shuttle_km: 6                     # placeholder: length of one park-and-ride shuttle trip, in kilometres
+  turned_away_hours: 0.5            # placeholder: hours a rider loses when a full bus leaves without them (waiting for the next one, or walking instead)
 
 simulation:
   sim_scale: 5                      # assumption: real vehicles represented by each simulated car; the same scale applies to the background traffic and the festival cars
-  trip_window_start_hour: 17        # assumption: first hour of the evening peak a scenario run simulates
-  trip_window_end_hour: 21          # assumption: last hour (exclusive) of the evening peak a scenario run simulates
+  trip_window_start_hour: 18        # assumption: first hour of the evening a scenario run simulates (Fringe audiences arrive from about 18:00)
+  trip_window_end_hour: 24          # assumption: last hour (exclusive) a scenario run simulates; includes the Tattoo's 23:00 exit
   warmup_minutes: 20                # assumption: minutes simulated before the window, and not counted, so the roads are not empty at the start
 
 walking:
@@ -37,3 +39,4 @@ levers:
     max: 0.6                        # placeholder: most that could be diverted
     step: 0.15                      # placeholder: sweep step
     default: 0                      # assumption: none today
+    extra_minutes: 20               # placeholder: extra door-to-door minutes for someone who parks and rides instead of driving to the venue

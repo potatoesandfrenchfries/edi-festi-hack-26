@@ -34,6 +34,7 @@ from pipeline.venues import PUBLIC_BUILDINGS, TO_BNG, load_venues, public_ids, v
 INTERIM = scoped(ROOT / "data" / "interim")
 OUT = scoped(ROOT / "data" / "out")
 WEB_DATA = ROOT / "web" / "public" / "data"
+STL_BEDS = ROOT / "data" / "interim" / "stl_beds.json"  # city-wide, so not scoped to the area being built
 TO_WGS84 = Transformer.from_crs(27700, 4326, always_xy=True)
 
 CONFIG = ROOT / "config"
@@ -83,7 +84,7 @@ def add_accommodation(table):
     kinds = [accommodation.stay_kind(t, c, cfg) for t, c in zip(table.column("osm_tourism").to_pylist(), table.column("overture_class").to_pylist(), strict=True)]
     areas = table.column("floor_area_m2").to_pylist()
     beds = [accommodation.tag_beds(kind, area, cfg) for kind, area in zip(kinds, areas, strict=True)]
-    stl_path = INTERIM / "stl_beds.json"
+    stl_path = STL_BEDS
     lost = 0.0
     if stl_path.exists():
         stl = json.loads(stl_path.read_text())
@@ -99,19 +100,19 @@ def add_accommodation(table):
 
 
 def accommodation_payload(table):
-    """What the web app loads: occupancy rules, the hour-of-day profile and bed totals for the pilot and the city."""
+    """What the web app loads: occupancy rules, the hour-of-day profile and bed totals for the area built (pilot or whole council) and the city."""
     cfg = accommodation.load_config()
     totals = {}
     for kind, beds in zip(table.column("stay_kind").to_pylist(), table.column("beds").to_pylist(), strict=True):
         if kind:
             totals[kind] = totals.get(kind, 0.0) + beds
-    stl_path = INTERIM / "stl_beds.json"
+    stl_path = STL_BEDS
     city_str = json.loads(stl_path.read_text())["beds"] if stl_path.exists() else 0
     return {
         "status": cfg["status"],
         "occupancy": cfg["occupancy"],
         "night_profile": cfg["night_profile"],
-        "pilot_beds": {kind: round(total) for kind, total in sorted(totals.items())},
+        "area_beds": {kind: round(total) for kind, total in sorted(totals.items())},
         "city_beds": {"str": city_str, "hotel": cfg["citywide"]["hotel_beds"]},
     }
 

@@ -1,7 +1,5 @@
 # Edinburgh Festivals Hackathon 2026
 
-initial commit
-
 ## Data and pipeline
 
 The festival ticket data lives in `dataset/` (git-ignored, sensitive: keep it local). Column

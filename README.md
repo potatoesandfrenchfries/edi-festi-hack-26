@@ -2,18 +2,18 @@
 
 ## Data and pipeline
 
-The festival ticket data lives in `dataset/` (git-ignored, sensitive: keep it local). Column
-listings, sensitive-column handling and run instructions are in [dataset/README.md](dataset/README.md).
+The festival ticket data lives in `dataset/`. Column
+listings, sensitive-column handling and run instructions are in [dataset/README.md](dataset/README.md). The contents are sensitive and will not be available for public use
 
 ```
-uv sync && cp .env.example .env     # set PIPELINE_SALT
+uv sync && cp .env.example .env
 uv run python -m pipeline.run       # build parquet, then profile + covariance reports in reports/
-uv run pytest                       # runs on synthetic data only
+uv run pytest                       # synthetic data
 ```
 
 ## Lothian bus simulator
 
-A map of simulated Lothian buses on every route, built from public timetable data (no API key).
+A map of simulated Lothian buses on every route, built from public timetable data.
 See [lothian/README.md](lothian/README.md).
 
 ```

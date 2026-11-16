@@ -37,6 +37,15 @@ The engine's own traffic still wanders. On top of it, **festival cars** are made
 
 Cars gave up after 40 minutes are counted (`abandoned`). The simulated day starts at 17:00 when festival data is loaded, so audiences arrive within minutes of watching.
 
+### Drivers heading for a venue (optional, off by default)
+
+A separate switch in the Scenario tab (`web/src/destination-cars.ts`) makes a share of the **ordinary** cars (default 25%, 5 to 50%) drive to a venue and then carry on wandering. These are not the festival cars above: they start wherever the engine put them, are chosen once by car id (so the same cars every run), and are not extra traffic.
+
+- Only the purple buildings are destinations. Hubs and the Esplanade have no footprint, and a venue with no road within 600 m (Church Hill Theatre, with the pilot roads) is never chosen. Each pick is weighted by the venue's audience in that hour (`presentAt`, the same figure that shades the building), so a venue with no audience gets no cars.
+- The route is the engine's A* (`findDetour`) to one of the three nearest road nodes. If a closure or the gridlock relief drops the route, it is planned again; a car that has not arrived after 40 minutes gives up and wanders.
+- On arrival (halfway along the last road) the car goes back to the engine's weighted random turns, and after a dwell of about five minutes (`DWELL_S`, an assumption) it picks its next venue. The share is therefore a share of drivers, not a share of trips.
+- **It does not respond to the council's levers** (bus frequency, park-and-ride, closures-as-lever), unlike the festival cars, and the festival cars still run next to it. It is left out of the scenario sweep (`scenario.ts` never turns it on), so the table of results is unchanged. With both on, venue traffic is counted twice on the live map and in the live impact figures; turn the festival-car switch off to see these cars alone.
+
 ## Testing configurations (`web/src/scenario.ts`)
 
 One run puts the evening (18:00 to midnight, including the Tattoo's 23:00 exit) through the engine with the buses and closures coupled in, and prices it:

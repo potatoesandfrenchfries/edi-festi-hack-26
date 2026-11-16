@@ -1,11 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STATE, sanitiseState } from './festival-panel';
+import { DEFAULT_STATE, DESTINATION_SHARE, sanitiseState } from './festival-panel';
 
 const par = { min: 0, max: 0.6 };
 
 describe('festival panel state', () => {
   it('keeps valid values', () => {
-    expect(sanitiseState({ dateIndex: 5, showSurge: false, trips: false, parkAndRide: 0.3 }, 29, par)).toEqual({ dateIndex: 5, showSurge: false, trips: false, parkAndRide: 0.3 });
+    expect(sanitiseState({ dateIndex: 5, showSurge: false, trips: false, parkAndRide: 0.3, destinations: true, destinationShare: 0.4 }, 29, par)).toEqual({
+      dateIndex: 5, showSurge: false, trips: false, parkAndRide: 0.3, destinations: true, destinationShare: 0.4,
+    });
+  });
+  it('destination cars are opt-in: off unless the stored value is exactly true', () => {
+    expect(DEFAULT_STATE.destinations).toBe(false);
+    expect(sanitiseState({ destinations: 'yes' }, 29, par).destinations).toBe(false);
+    expect(sanitiseState({ destinations: true }, 29, par).destinations).toBe(true);
+  });
+  it('keeps the destination share inside its range and falls back to the default for junk', () => {
+    expect(sanitiseState({ destinationShare: 3 }, 29, par).destinationShare).toBe(DESTINATION_SHARE.max);
+    expect(sanitiseState({ destinationShare: -1 }, 29, par).destinationShare).toBe(DESTINATION_SHARE.min);
+    expect(sanitiseState({ destinationShare: Number.NaN }, 29, par).destinationShare).toBe(DESTINATION_SHARE.default);
   });
   it('clamps the date to the dates there are and the lever to its range', () => {
     expect(sanitiseState({ dateIndex: 400, parkAndRide: 9 }, 29, par)).toMatchObject({ dateIndex: 28, parkAndRide: 0.6 });

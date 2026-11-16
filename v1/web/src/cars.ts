@@ -103,6 +103,7 @@ export class CarSimulation {
   private closedEdges: number[] = [];
   private tripVenues: TripVenue[] = [];
   private tripRates: TripRates | null = null;
+  private destinations: { share: number; weights: number[] } | null = null;
   private layer3d: Car3dLayer | null = null;
   /** True if the 3D models could not be set up: the dots are then drawn instead. */
   private dotsOnly = false;
@@ -192,6 +193,12 @@ export class CarSimulation {
     if (rates) this.worker?.postMessage({ type: 'trips', rates });
   }
 
+  /** A share (0 to 1) of the ordinary cars heads for the venues, each chosen with its weight (the order of `setTripVenues`), then wanders on. Zero turns it off. */
+  setDestinations(share: number, weights: readonly number[]): void {
+    this.destinations = { share, weights: [...weights] };
+    this.worker?.postMessage({ type: 'destinations', ...this.destinations });
+  }
+
   /** Cars on the road as a multiple of the population `make cars` chose (the hour's share of the day times the demand slider). */
   setDemand(fraction: number): void {
     this.demand = Math.min(Math.max(fraction, 0), MAX_DEMAND);
@@ -228,6 +235,7 @@ export class CarSimulation {
     if (this.busStates) worker.postMessage({ type: 'buses', data: this.busStates });
     if (this.closedEdges.length) worker.postMessage({ type: 'closed', edges: this.closedEdges });
     if (this.tripRates) worker.postMessage({ type: 'trips', rates: this.tripRates });
+    if (this.destinations) worker.postMessage({ type: 'destinations', ...this.destinations });
   }
 
   private receive(message: FromWorker): void {

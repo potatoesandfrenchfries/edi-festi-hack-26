@@ -13,7 +13,13 @@ export interface FestivalState {
   showSurge: boolean;
   trips: boolean;
   parkAndRide: number;
+  /** Some ordinary cars head for a venue and then wander on. Off by default, and never part of the scenario sweep. */
+  destinations: boolean;
+  /** The share of ordinary cars that do. */
+  destinationShare: number;
 }
+
+export const DESTINATION_SHARE = { min: 0.05, max: 0.5, step: 0.05, default: 0.25 } as const;
 
 export interface FestivalEvents {
   change(state: FestivalState): void;
@@ -27,17 +33,20 @@ export interface SurgeFigures {
   occupancy: number;
 }
 
-export const DEFAULT_STATE: FestivalState = { dateIndex: 12, showSurge: true, trips: true, parkAndRide: 0 };
+export const DEFAULT_STATE: FestivalState = { dateIndex: 12, showSurge: true, trips: true, parkAndRide: 0, destinations: false, destinationShare: DESTINATION_SHARE.default };
 
 export function sanitiseState(raw: unknown, dates: number, parkAndRide: { min: number; max: number }): FestivalState {
   const input = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
   const index = typeof input.dateIndex === 'number' && Number.isInteger(input.dateIndex) ? input.dateIndex : DEFAULT_STATE.dateIndex;
   const par = typeof input.parkAndRide === 'number' && Number.isFinite(input.parkAndRide) ? input.parkAndRide : DEFAULT_STATE.parkAndRide;
+  const share = typeof input.destinationShare === 'number' && Number.isFinite(input.destinationShare) ? input.destinationShare : DESTINATION_SHARE.default;
   return {
     dateIndex: Math.min(Math.max(index, 0), Math.max(dates - 1, 0)),
     showSurge: input.showSurge !== false,
     trips: input.trips !== false,
     parkAndRide: Math.min(Math.max(par, parkAndRide.min), parkAndRide.max),
+    destinations: input.destinations === true,
+    destinationShare: Math.min(Math.max(share, DESTINATION_SHARE.min), DESTINATION_SHARE.max),
   };
 }
 
@@ -74,6 +83,9 @@ export class FestivalPanel {
   private readonly par: HTMLInputElement;
   private readonly stats: Record<'audience' | 'guests' | 'occupancy', HTMLElement>;
   private readonly tripInfo: HTMLElement;
+  private readonly destinations: HTMLInputElement;
+  private readonly destinationShare: HTMLInputElement;
+  private readonly destinationInfo: HTMLElement;
   private objective: Objective = 'cost';
 
   constructor(
@@ -120,6 +132,10 @@ export class FestivalPanel {
     this.par = Object.assign(document.createElement('input'), { type: 'range', id: 'park-and-ride', min: String(parRange.min), max: String(parRange.max), step: String(parRange.step) });
     this.par.setAttribute('aria-label', 'Share of out-of-town drivers sent to park-and-ride');
     this.tripInfo = el('p', { className: 'hint', id: 'festival-trips-info', role: 'status' });
+    this.destinations = toggle('festival-destinations', 'Some drivers head for a venue', 'A share of the ordinary cars each drive to a venue, chosen by its audience at that hour, then carry on wandering. Not part of the results table below.').querySelector('input')!;
+    this.destinationShare = Object.assign(document.createElement('input'), { type: 'range', id: 'destination-share', min: String(DESTINATION_SHARE.min), max: String(DESTINATION_SHARE.max), step: String(DESTINATION_SHARE.step) });
+    this.destinationShare.setAttribute('aria-label', 'Share of ordinary cars that head for a venue');
+    this.destinationInfo = el('p', { className: 'hint', id: 'festival-destinations-info', role: 'status' });
     const results = el('div', { id: 'scenario-results' });
     scenario?.prepend(
       el('div', { className: 'section-heading' }, el('h2', { textContent: 'Festival travel' }), el('p', { textContent: 'Audiences drive to the venues the tickets name. Change how they get there and see what it costs.' })),
@@ -130,6 +146,13 @@ export class FestivalPanel {
         el('div', { className: 'range-labels' }, el('span', { textContent: 'None' }), el('span', { textContent: `${Math.round(parRange.max * 100)}% of out-of-town drivers` })),
       ),
       this.tripInfo,
+      this.destinations.closest('.toggle-card')!,
+      el('div', { className: 'card' },
+        el('div', { className: 'card-head' }, el('span', { textContent: 'Drivers heading for a venue' }), el('output', { id: 'destination-share-label' })),
+        this.destinationShare,
+        el('div', { className: 'range-labels' }, el('span', { textContent: `${Math.round(DESTINATION_SHARE.min * 100)}%` }), el('span', { textContent: `${Math.round(DESTINATION_SHARE.max * 100)}% of ordinary cars` })),
+      ),
+      this.destinationInfo,
       el('div', { className: 'section-heading section-heading-next' }, el('h2', { textContent: 'Best configuration' }), el('p', { textContent: 'Every combination of bus frequency, park-and-ride and closures, run through the same evening.' })),
       results,
     );
@@ -139,8 +162,12 @@ export class FestivalPanel {
     this.surge.addEventListener('change', () => this.update({ showSurge: this.surge.checked }));
     this.trips.addEventListener('change', () => this.update({ trips: this.trips.checked }));
     this.par.addEventListener('input', () => this.update({ parkAndRide: Number(this.par.value) }));
+    this.destinations.addEventListener('change', () => this.update({ destinations: this.destinations.checked }));
+    this.destinationShare.addEventListener('input', () => this.update({ destinationShare: Number(this.destinationShare.value) }));
     this.trips.disabled = !hasCars;
     this.par.disabled = !hasCars;
+    this.destinations.disabled = !hasCars;
+    this.destinationShare.disabled = !hasCars;
     this.render();
   }
 
@@ -170,6 +197,10 @@ export class FestivalPanel {
     this.tripInfo.textContent = text;
   }
 
+  setDestinationInfo(text: string): void {
+    this.destinationInfo.textContent = text;
+  }
+
   private update(next: Partial<FestivalState>): void {
     this.current = sanitiseState({ ...this.current, ...next }, this.dates.length, this.parRange);
     save(this.current);
@@ -186,6 +217,9 @@ export class FestivalPanel {
     this.surge.checked = s.showSurge;
     this.trips.checked = s.trips && this.hasCars;
     this.par.value = String(s.parkAndRide);
+    this.destinations.checked = s.destinations && this.hasCars;
+    this.destinationShare.value = String(s.destinationShare);
+    document.getElementById('destination-share-label')!.textContent = `${Math.round(s.destinationShare * 100)}%`;
     document.getElementById('park-and-ride-label')!.textContent = s.parkAndRide > 0 ? `${Math.round(s.parkAndRide * 100)}%` : 'none';
   }
 

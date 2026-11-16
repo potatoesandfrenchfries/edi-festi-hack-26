@@ -13,7 +13,7 @@ import {
 } from './buildings';
 import { PILOT_CENTRE, PILOT_VIEW, basemapStyleUrl } from './config';
 import { initControls } from './controls';
-import { dayTypeOf, festivalDates, loadAccommodation, loadDemand, slotAt, type Accommodation, type Demand } from './demand';
+import { dayTypeOf, festivalDates, loadAccommodation, loadDemand, presentAt, slotAt, type Accommodation, type Demand } from './demand';
 import { FestivalLayer, surgeFor } from './festival-layer';
 import { FestivalPanel } from './festival-panel';
 import { loadEconomics, type Economics } from './impact';
@@ -307,6 +307,26 @@ function createApp(
     const levers = { busFrequency: settings.busFrequency, parkAndRide: state.parkAndRide, closures: settings.festivalClosures };
     cars.setTripRates(on ? planSlot(festival.demand, festival.transport, date, slot, levers, departures).rates : emptyRates(venueCount));
   }
+  let lastDestinations = '';
+  /** Tells the car worker which share of the ordinary cars should head for a venue, and how likely each building is, by its audience this hour. */
+  function feedDestinations() {
+    if (!cars || !festival.demand || !panel) return;
+    const state = panel.state();
+    const on = state.destinations && settings.showCars;
+    const date = panel.currentDate();
+    const hour = Math.floor(((tracker?.ledger.clock ?? FESTIVAL_DAY_START_S) % 86400) / 3600);
+    const key = [on, date, hour, state.destinationShare].join('|');
+    if (key === lastDestinations) return;
+    lastDestinations = key;
+    const demand = festival.demand;
+    // Only the purple buildings: hubs and the Esplanade have no footprint to drive to, so they get no weight.
+    const weights = tripVenues(demand).map((v) => {
+      const venue = demand.venues[v.key];
+      return venue && venue.kind === 'building' ? presentAt(demand, venue, date, hour) : 0;
+    });
+    cars.setDestinations(on ? state.destinationShare : 0, weights);
+    if (!on) panel.setDestinationInfo('');
+  }
   /** Shades the buildings for the chosen date and hour, shows the surge figures, and keeps the day type in step with the date. */
   function renderFestival() {
     if (!panel || !festivalLayer) return;
@@ -322,8 +342,10 @@ function createApp(
       ? new FestivalPanel(dates, festival.transport?.levers.park_and_ride ?? { min: 0, max: 0.6, step: 0.15 }, festival.sweep, cars !== null && festival.transport !== null, {
           change() {
             lastTrips = '';
+            lastDestinations = '';
             schedule();
             feedTrips();
+            feedDestinations();
           },
           apply(levers) {
             // Drive the existing sliders and switch, so the settings, the buses and the closures all follow as if the user had moved them.
@@ -335,8 +357,10 @@ function createApp(
             const index = festival.sweep ? dates.indexOf(festival.sweep.date) : -1;
             panel?.set({ parkAndRide: levers.parkAndRide, ...(index >= 0 ? { dateIndex: index } : {}) });
             lastTrips = '';
+            lastDestinations = '';
             schedule();
             feedTrips();
+            feedDestinations();
           },
         })
       : null;
@@ -345,12 +369,19 @@ function createApp(
     tracker.restart(FESTIVAL_DAY_START_S);
     controls.setImpact(tracker.view());
   }
-  if (panel) window.setInterval(feedTrips, 1000);
+  if (panel) {
+    window.setInterval(feedTrips, 1000);
+    window.setInterval(feedDestinations, 1000);
+  }
   coupling?.start();
   if (cars) {
     cars.onStats = (stats) => {
       controls.setCarStats(settings.showCars ? stats : null);
       tracker?.onCarStats(settings.showCars ? stats : null);
+      if (stats?.destinations && panel?.state().destinations && settings.showCars) {
+        const d = stats.destinations;
+        panel.setDestinationInfo(`${d.heading} cars heading for a venue · ${d.arrived} have arrived and gone back to wandering${d.abandoned + d.unreachable ? ` · ${d.abandoned + d.unreachable} could not get there` : ''}. Modelled.`);
+      }
       if (stats?.trips) panel?.setTripInfo(`${stats.trips.active} festival cars on the road · ${stats.trips.arrived} have reached a venue · ${stats.trips.left} have left one${stats.trips.abandoned ? ` · ${stats.trips.abandoned} gave up` : ''}${stats.trips.walkMetres > 0 ? ` · drivers walked ${Math.round(stats.trips.walkMetres / Math.max(stats.trips.arrived, 1))} m on average` : ''}.`);
     };
   }

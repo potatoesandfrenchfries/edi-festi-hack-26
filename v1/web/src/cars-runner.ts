@@ -2,6 +2,7 @@
 // cars.worker.ts wires it to postMessage and setInterval.
 import { CarSim, mulberry32 } from './engine/car-sim.mjs';
 import { BusRoadEffects } from './car-bus-effects';
+import { DestinationCars, type DestinationStats } from './destination-cars';
 import { TripFlow, type TripStats } from './trips';
 import { FLOATS_PER_CAR, type FromWorker, type ToWorker } from './cars-protocol';
 
@@ -41,6 +42,8 @@ export class CarRunner {
   private baselineSlots = 0;
   /** Festival cars heading for venues, or null when no venues were given. */
   private trips: TripFlow | null = null;
+  /** Ordinary cars that drive to a venue and then wander on (off until a share is asked for), or null when no venues were given. */
+  private destinations: DestinationCars | null = null;
   private stepCount = 0;
   /** Roads closed to vehicles at the moment (edge indexes). */
   private closedNow = new Set<number>();
@@ -77,6 +80,7 @@ export class CarRunner {
         for (let i = this.population; i < this.sim.n; i++) this.sim.switchOff(i);
         this.random = mulberry32(message.seed + 1); // its own stream, so relief never changes where the engine places or turns cars
         this.trips = message.venues?.length ? new TripFlow(this.sim, message.venues, message.roads.classes, slots, mulberry32(message.seed + 2)) : null;
+        this.destinations = message.venues?.length ? new DestinationCars(this.sim, message.venues, slots, message.seed, mulberry32(message.seed + 3)) : null;
         this.stepCount = 0;
         this.cumulative = this.cumulativeLaneMetres(this.sim);
         this.relocated = this.sinceRelief = 0;
@@ -87,6 +91,8 @@ export class CarRunner {
         if (this.sim) this.applyDemand(this.sim, message.fraction);
       } else if (message.type === 'trips') {
         this.trips?.setRates(message.rates);
+      } else if (message.type === 'destinations') {
+        this.destinations?.setTarget(message.share, message.weights);
       } else if (message.type === 'closed') {
         if (this.sim) this.applyClosed(this.sim, message.edges);
       } else if (message.type === 'buses') {
@@ -129,7 +135,7 @@ export class CarRunner {
         type: 'stats', cars: stats.fleet, averageKmh: stats.averageSpeedMps * 3.6, gridlocked: stats.gridlocked,
         achievedSpeed: this.running ? this.achieved : 0, signals: sim.signalCount, relocated: this.relocated, slowedByBuses: this.slowedByBuses,
         simSeconds: this.simAcc, delayCarSeconds: this.delayAcc, idleCarSeconds: this.idleAcc, distanceM: this.distanceAcc,
-        trips: this.trips?.stats(),
+        trips: this.trips?.stats(), destinations: this.destinations?.stats(),
       });
       this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
     }
@@ -138,7 +144,10 @@ export class CarRunner {
   private stepOnce(sim: CarSim): void {
     this.trips?.step(STEP_SECONDS);
     sim.step(STEP_SECONDS);
-    if (this.trips && ++this.stepCount % 5 === 0) this.trips.check();
+    if (this.trips && ++this.stepCount % 5 === 0) {
+      this.trips.check();
+      this.destinations?.check();
+    }
     this.account(sim, STEP_SECONDS);
     if (this.relief && ++this.sinceRelief >= RELIEF_EVERY_STEPS) {
       this.sinceRelief = 0;
@@ -169,6 +178,11 @@ export class CarRunner {
   /** Festival trip figures since the run began, or null when no venues were given. */
   tripFigures(): TripStats | null {
     return this.trips?.stats() ?? null;
+  }
+
+  /** Figures for the ordinary cars heading for venues since the run began, or null when no venues were given. */
+  destinationFigures(): DestinationStats | null {
+    return this.destinations?.stats() ?? null;
   }
 
   /** Where the traffic stands now: cars stopped over two minutes, mean speed, cars relocated so far. */

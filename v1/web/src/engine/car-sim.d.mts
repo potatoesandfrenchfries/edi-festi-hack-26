@@ -55,6 +55,8 @@ export class CarSim {
   inEdges: Int32Array;
   nodeLon: Float64Array;
   nodeLat: Float64Array;
+  /** The road each car has chosen to take after its current one. */
+  next: Int32Array;
   /** Position in the route (`route[i]`) of the next road to take. */
   routeStep: Int32Array;
   /** Quickest route (road ids) from node `start` to node `goal` on roads that are not dead, or null. Cached until the closures change. */

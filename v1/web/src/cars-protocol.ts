@@ -1,4 +1,5 @@
 // Messages between the main thread and the car worker (cars.worker.ts), and the packed frame layout.
+import type { DestinationStats } from './destination-cars';
 import type { TripRates, TripStats, TripVenue } from './trips';
 import type { Roads } from './engine/car-sim.mjs';
 
@@ -41,7 +42,13 @@ export interface TripsMessage {
   type: 'trips';
   rates: TripRates;
 }
-export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage | ClosedMessage | TripsMessage;
+/** The share (0 to 1) of the ordinary cars that head for a venue and then wander on, and each venue's weight (its audience) in the init order. Zero share is off. */
+export interface DestinationsMessage {
+  type: 'destinations';
+  share: number;
+  weights: number[];
+}
+export type ToWorker = InitMessage | RunMessage | DemandMessage | BusesMessage | ClosedMessage | TripsMessage | DestinationsMessage;
 
 export const BUS_FLOATS = 4; // longitude, latitude, bearing (degrees), state
 export const BUS_MOVING = 0;
@@ -69,6 +76,8 @@ export interface CarStatsMessage {
   distanceM: number;
   /** Festival trips since the run began; absent when no venues were given. */
   trips?: TripStats;
+  /** Ordinary cars heading for venues; absent when no venues were given. */
+  destinations?: DestinationStats;
 }
 export interface ReadyMessage {
   type: 'ready';

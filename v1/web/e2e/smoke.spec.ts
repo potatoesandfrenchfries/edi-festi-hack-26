@@ -8,6 +8,7 @@ type Map = {
   getStyle(): { sources: object };
   queryRenderedFeatures(geometry?: undefined, options?: { layers: string[] }): { properties: { height_m: number }; geometry: { type: string; coordinates: number[][][] } }[];
   getLayer(id: string): object | undefined;
+  querySourceFeatures(source: string): { properties: object }[];
   getPaintProperty(layer: string, name: string): unknown;
   getLayoutProperty(layer: string, name: string): unknown;
   jumpTo(options: object): void;
@@ -28,10 +29,9 @@ function collectErrors(page: import('@playwright/test').Page) {
   return errors;
 }
 
-test('loads with no secrets and shows the modelled-estimate banner', async ({ page }) => {
+test('loads with no secrets', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/');
-  await expect(page.locator('#banner')).toHaveText('Modelled estimates, not live counts.');
   await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.map.loaded());
   await expect(page.locator('canvas.maplibregl-canvas')).toBeVisible();
   // No basemap, so no key or network is needed: every map source is local (the buildings archive, and the bus and car layers' GeoJSON).
@@ -143,6 +143,33 @@ test.describe('with road data', () => {
   });
 });
 
+test.describe('with road data (signals)', () => {
+  test.skip(!hasTiles || !hasCars, 'run `make tiles` and `make cars` first');
+
+  test('draws the traffic signals under the cars in a modelled cycle, and hides them with the switch', async ({ page }) => {
+    const errors = collectErrors(page);
+    await page.goto('/');
+    await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
+    await page.getByRole('tab', { name: 'Display' }).click();
+    await expect(page.locator('#show-cars')).toBeChecked();
+    // Zoomed in on the signals round St Andrew Square, where the dots are drawn (they start at zoom 14).
+    await page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.jumpTo({ center: [-3.1937, 55.953], zoom: 17 }));
+    const states = () =>
+      page.evaluate(() => {
+        const features = (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.querySourceFeatures('signals');
+        return [...new Set(features.map((f) => (f.properties as unknown as { s: number }).s))].sort();
+      });
+    await expect.poll(async () => (await states()).length, { timeout: 30000 }).toBeGreaterThan(1); // the cycle gives more than one colour at once
+    const layer = (name: string) => page.evaluate((n) => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayoutProperty('signals-layer', n), name);
+    expect(await layer('visibility')).toBe('visible');
+    await page.locator('#show-cars').uncheck();
+    await expect.poll(() => layer('visibility')).toBe('none');
+    await page.locator('#show-cars').check();
+    await expect.poll(() => layer('visibility')).toBe('visible');
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe('with festival closures', () => {
   test.skip(!hasTiles || !hasCars || !hasClosures, 'run `make tiles`, `make cars` and `make closures` first');
 
@@ -152,7 +179,7 @@ test.describe('with festival closures', () => {
     await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
     await page.getByRole('tab', { name: 'Scenario' }).click();
     await expect(page.locator('#festival-closures')).toBeChecked();
-    await expect(page.locator('#closures-info')).toContainText(/Closures of \w+day \d+ August 2026, a typical Fringe/);
+    await expect(page.locator('#closures-info')).toContainText(/Closures of \w+day,? \d+ August 2026, a typical Fringe/);
     const hasLayer = () =>
       page.evaluate(() => Boolean((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayer('closures-line')));
     expect(await hasLayer()).toBe(true);
@@ -265,10 +292,10 @@ test.describe('controls and popup', () => {
   const colourJson = (page: import('@playwright/test').Page) =>
     page.evaluate(() => JSON.stringify((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getPaintProperty('buildings-3d', 'fill-extrusion-color')));
 
-  test('shows the uncalibrated notice', async ({ page }) => {
+  test('has no notice bubbles over the map, and no legend block', async ({ page }) => {
     await ready(page);
-    await expect(page.locator('#profile-notice')).toContainText('Uncalibrated placeholder profiles');
-    await expect(page.locator('#profile-notice')).toContainText('not census figures');
+    await expect(page.locator('#banner')).toHaveCount(0);
+    await expect(page.locator('#profile-notice')).toHaveCount(0);
     await expect(page.locator('#legend-block')).toHaveCount(0);
   });
 
@@ -431,8 +458,6 @@ test.describe('controls and popup', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await page.locator('#minimise').click();
     await expect(page.locator('#hour')).toBeHidden();
-    await expect(page.locator('#banner')).toBeVisible();
-    await expect(page.locator('#profile-notice')).toBeVisible();
   });
 
   test('the loading overlay goes away and the status line reports the buildings', async ({ page }) => {

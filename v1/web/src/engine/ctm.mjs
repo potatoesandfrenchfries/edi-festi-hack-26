@@ -27,6 +27,9 @@ const SIGNAL_SATURATION = 1800; // literature (plan section 3.3, "verify"): vehi
 const JAM_DENSITY = 1 / 7.5; // vehicles per metre per lane: the car engine's slot (4.5 m car + 2 m gap + 1 m) so both fill a lane alike
 const HOUR = 3600;
 const ROUTE_SPREAD_S = 30; // placeholder: a way on that is this much slower than the best still takes 1/e of the share (a logit choice)
+const REROUTE_EVERY_S = 60; // placeholder: how often drivers look again at how long each road is taking
+const REROUTE_SMOOTHING = 0.5; // placeholder: weight of the newest travel times in the average, so flow does not flip between two ways each time
+const MIN_ROUTE_SPEED = 1; // m/s: a jammed road is slow, but never infinitely so, or a route through it would be unreachable
 const U_TURN_S = 90; // placeholder: extra seconds a U-turn costs when choosing a way to a destination
 
 const baseClass = name => name.replace(/_link$/, '');
@@ -41,6 +44,7 @@ export class CellModel {
   constructor(roads, { population = 0, dt = 2, seed = 1 } = {}) {
     const edges = roads.edges, E = edges.length, nodes = roads.nodes;
     this.E = E; this.nodes = nodes; this.dt = dt; this.time = 0;
+    this.adaptive = false;
     this.K = 0; // destinations (commodities); 0 is the circulating mode, see setDestinations
     this.from = Int32Array.from(edges, e => e[0]); this.to = Int32Array.from(edges, e => e[1]);
     this.lanes = Uint8Array.from(edges, e => Math.max(1, e[3]));
@@ -186,6 +190,23 @@ export class CellModel {
     for (let n = 0; n < this.nodes; n++) { widest = Math.max(widest, this.outStart[n + 1] - this.outStart[n]); deepest = Math.max(deepest, this.inStart[n + 1] - this.inStart[n]); }
     this.mix = new Float64Array(deepest * K); this.mixShare = new Float64Array(deepest * widest); this.mixSend = new Float64Array(deepest); this.mixExit = new Float64Array(deepest);
     this.n.fill(0); this.exited = 0; this.entered = 0; this.time = 0;
+    this.cost = Float64Array.from({ length: this.E }, (_, e) => this.length[e] / this.speed[e]); // seconds to drive each road, as the drivers believe it
+    this.nextReroute = REROUTE_EVERY_S;
+    this.buildRoutes();
+  }
+
+  /** Whether drivers re-plan by current road speeds (true) or always by free-flow times (false). Routed mode only. */
+  setAdaptive(on) {
+    this.adaptive = on;
+    if (!on && this.K) { for (let e = 0; e < this.E; e++) this.cost[e] = this.length[e] / this.speed[e]; this.buildRoutes(); }
+  }
+
+  // Drivers' belief of each road's time moves towards what it is taking now, and routes are made again.
+  reroute() {
+    for (let e = 0; e < this.E; e++) {
+      const now = this.length[e] / Math.max(MIN_ROUTE_SPEED, this.edgeSpeed(e));
+      this.cost[e] += REROUTE_SMOOTHING * (now - this.cost[e]);
+    }
     this.buildRoutes();
   }
 
@@ -219,7 +240,7 @@ export class CellModel {
       for (let i = this.inStart[node]; i < this.inStart[node + 1]; i++) {
         const e = this.inEdges[i];
         if (this.closed[e]) continue;
-        const nd = d + this.length[e] / this.speed[e];
+        const nd = d + this.cost[e];
         if (nd < dist[this.from[e]]) { dist[this.from[e]] = nd; push(nd, this.from[e]); }
       }
     }
@@ -239,7 +260,7 @@ export class CellModel {
         const time = [];
         for (let o = this.outStart[node], j = 0; o < this.outStart[node + 1]; o++, j++) {
           const c = this.out[o];
-          const t = this.closed[c] ? Infinity : this.length[c] / this.speed[c] + dist[this.to[c]] + (this.to[c] === this.from[e] ? U_TURN_S : 0);
+          const t = this.closed[c] ? Infinity : this.cost[c] + dist[this.to[c]] + (this.to[c] === this.from[e] ? U_TURN_S : 0);
           time.push(t); if (t < best) best = t;
         }
         if (best === Infinity) continue;
@@ -257,7 +278,7 @@ export class CellModel {
   // Spreads `population` vehicles over the roads by class x lanes x length (the car engine's seeding weights), evenly along each road.
   seed(population) {
     this.n.fill(0); this.sourceQueue.fill(0); this.exited = 0; this.entered = 0; this.time = 0;
-    if (this.K) { this.nk.fill(0); this.exitedBy.fill(0); return; } // routed mode starts empty: vehicles come in at sources
+    if (this.K) { this.nk.fill(0); this.exitedBy.fill(0); this.nextReroute = REROUTE_EVERY_S; return; } // routed mode starts empty: vehicles come in at sources
     if (!population) return;
     let total = 0;
     const w = new Float64Array(this.E);
@@ -360,7 +381,8 @@ export class CellModel {
   }
 
 
-  // One step in routed mode: the same limits and junction rules as `step`, but each vehicle follows the shares for its own destination.
+  // One step in routed mode: the same limits as `step`, but each vehicle follows the shares for its own destination, and each movement at a
+  // junction is limited by its own onward road (no first-in-first-out blocking across movements).
   stepRouted() {
     const { E, K, dt, cellStart, n, nk, dk, sendBuf: send, recvBuf: recv, inBuf: inflow } = this;
     this.limits();
@@ -407,23 +429,22 @@ export class CellModel {
         const c = this.out[o0 + j], accept = this.closed[c] ? 0 : recv[cellStart[c]];
         this.scale[j] = this.demand[j] > accept ? accept / this.demand[j] : 1;
       }
-      // Pass 2: a road held back on one way on is held back on all (first in, first out); move what is allowed.
+      // Pass 2: each movement is held back only by its own way on, as if every turn had its own lane. (Strict first-in-first-out, where one
+      // full way on stops the whole road, locks the network at the first spillback, because the route shares have thin tails.)
       for (let i = i0; i < i1; i++) {
         const e = this.inEdges[i], slot = i - i0, s = this.mixSend[slot];
         if (s <= 0) continue;
-        let r = 1;
-        for (let j = 0; j < width; j++) if (this.mixShare[slot * width + j] > 1e-9) r = Math.min(r, this.scale[j]);
-        if (r <= 0) continue;
         const last = cellStart[e + 1] - 1;
         for (let k = 0; k < K; k++) {
           const g = this.mix[slot * K + k];
           if (g <= 0) continue;
-          const moved = r * s * g;
-          dk[last * K + k] -= moved;
-          if (here && here.includes(k)) { this.exitedBy[k] += moved; this.exited += moved; continue; }
+          if (here && here.includes(k)) { const moved = s * g; dk[last * K + k] -= moved; this.exitedBy[k] += moved; this.exited += moved; continue; }
           for (let j = 0; j < width; j++) {
             const share = this.routeShare[(this.betaStart[e] + j) * K + k];
-            if (share > 0) { const first = cellStart[this.out[o0 + j]]; dk[first * K + k] += moved * share; inflow[first] += moved * share; }
+            if (share <= 0) continue;
+            const moved = s * g * share * this.scale[j], first = cellStart[this.out[o0 + j]];
+            if (moved <= 0) continue;
+            dk[last * K + k] -= moved; dk[first * K + k] += moved; inflow[first] += moved;
           }
         }
       }
@@ -445,6 +466,7 @@ export class CellModel {
       n[c] = total;
     }
     this.time += dt;
+    if (this.adaptive && this.time >= this.nextReroute) { this.nextReroute = this.time + REROUTE_EVERY_S; this.reroute(); }
   }
 
   /** Vehicles on road `e` heading for destination `k` (routed mode). */

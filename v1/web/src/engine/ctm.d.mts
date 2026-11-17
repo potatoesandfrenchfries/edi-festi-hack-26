@@ -62,6 +62,14 @@ export class CellModel {
    * Vehicles enter at sources and leave at their destination.
    */
   setDestinations(nodes: ArrayLike<number>): void;
+  /** Drivers re-plan every minute by how long each road is taking now (smoothed), not by free-flow times. Off by default. Routed mode only. */
+  setAdaptive(on: boolean): void;
+  /** Vehicles of each destination in each cell (`cell * K + k`), routed mode. The cell totals are `n`. */
+  nk: Float64Array;
+  /** Share of destination `k`'s vehicles on road `e` that take its j-th way on: `routeShare[(betaStart[e] + j) * K + k]`. */
+  routeShare: Float64Array;
+  /** Seconds each road is believed to take, which routes are made from. */
+  cost: Float64Array;
   /** Number of destinations (0 when circulating). */
   K: number;
   /** Vehicles per second wanting in, per road and destination (`edge * K + k`). Set through `setSource`. */

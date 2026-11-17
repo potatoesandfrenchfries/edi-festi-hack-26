@@ -280,4 +280,57 @@ describe('cell transmission model with destinations', () => {
     expect(model.entered - model.exited - model.mass()).toBeCloseTo(0, 6);
     for (let c = 0; c < model.cells; c++) expect(model.n[c]!).toBeGreaterThanOrEqual(0);
   });
+
+  it('drivers who re-plan by current speeds spread onto the other way when a jam builds on the quick one; fixed routes do not', () => {
+    // From node 0 to node 3, 1500 an hour: a short way (400 m) with a lane drop at its second road, so a queue builds on its first road
+    // and it passes only 1200 an hour, and a longer one (2 km) with room to spare. Two-lane feeder and first roads, so the limit is that drop.
+    const spec: [number, number, number][] = [[0, 1, 200], [1, 3, 200], [0, 2, 1000], [2, 3, 1000], [3, 0, 400]];
+    const arrivals = (adaptive: boolean) => {
+      const roads = network(spec, 4);
+      for (const [e, lanes] of [[0, 2], [2, 2], [3, 2], [4, 2]] as const) (roads.edges[e] as number[])[3] = lanes;
+      const model = new CellModel(roads);
+      model.setDestinations([3]);
+      model.setAdaptive(adaptive);
+      model.setSource(4, 1500);
+      model.advance(1800);
+      const before = model.exitedBy[0]!;
+      model.advance(600);
+      return { rate: ((model.exitedBy[0]! - before) / 600) * HOUR, waiting: model.stats().waiting };
+    };
+    const fixed = arrivals(false), adaptive = arrivals(true);
+    expect(fixed.rate).toBeLessThan(1200 * 1.05);
+    expect(adaptive.rate).toBeGreaterThan(1200 * 1.15);
+    expect(adaptive.waiting).toBeLessThan(fixed.waiting);
+  });
+
+  it('adaptive routing still conserves vehicles', () => {
+    const model = new CellModel(gridRoads(5));
+    model.setDestinations([24, 0]);
+    model.setAdaptive(true);
+    model.setSource(2, 900, 0);
+    model.setSource(10, 900, 1);
+    for (let k = 0; k < 20; k++) {
+      model.advance(120);
+      expect(model.entered - model.exited - model.mass()).toBeCloseTo(0, 6);
+    }
+  });
+
+  it('a full road with a thin share of the traffic does not stop the main stream (each movement has its own limit)', () => {
+    // A (0->1) feeds B (1->2, quick) and C (1->3), whose way on D is so long that routes towards C get a fraction of a percent. With C
+    // completely full it takes nothing; strict first-in-first-out blocking would then hold all of A's traffic. It must not.
+    const spec: [number, number, number][] = [[0, 1, 200], [1, 2, 200], [1, 3, 200], [3, 2, 3000], [2, 0, 400]];
+    const model = new CellModel(network(spec, 4));
+    model.setDestinations([2]);
+    const share = model.routeShare[(model.betaStart[0]! + 1) * 1]!; // the share from A into C (the second road leaving node 1)
+    expect(share).toBeGreaterThan(0);
+    expect(share).toBeLessThan(0.05);
+    const lastA = model.cellStart[1]! - 1;
+    model.nk[lastA] = model.n[lastA] = 3; // vehicles waiting at the end of A
+    for (let c = model.cellStart[2]!; c < model.cellStart[3]!; c++) model.nk[c] = model.n[c] = model.room[c]!; // C is completely full
+    const before = model.n[lastA]!, full = model.vehicles(2);
+    model.step();
+    expect(before - model.n[lastA]!).toBeGreaterThan(0.5); // A's vehicles went on (to B)
+    expect(model.vehicles(1)).toBeGreaterThan(0.5);
+    expect(model.vehicles(2)).toBeLessThanOrEqual(full + 1e-9); // and none went into C: it only drained into D
+  });
 });

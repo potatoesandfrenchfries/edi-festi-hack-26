@@ -85,8 +85,9 @@ async function main() {
   // Also optional (`make closures`): streets closed to vehicles on a Fringe day. They only matter to the cars, so need the road graph.
   const closureData = await loadClosures();
   const closures = carData && closureData ? new ClosureSchedule(closureData, carData) : null;
-  // The buses that run along a closed street are sent round it (they follow their own timetable paths, not the car roads). Needs all three.
-  if (buses && busData && carData && closures) buses.setDiverter(new BusDiverter(carData, busData));
+  // The buses that run along a closed street are sent round it (they follow their own timetable paths, not the car roads). Needs the bus
+  // timetable and the car roads, not the closures: the closures to buses from Lothian's notices (Princes Street) are hardcoded.
+  if (buses && busData && carData) buses.setDiverter(new BusDiverter(carData, busData));
   // Also optional: the ticket-driven festival layer (`make demand accommodation tiles`), its travel assumptions (`make transport`) and the
   // sweep of configurations (`npm run scenarios`). Each is used if present and the page works without it.
   const festival = { demand: await loadDemand(), accommodation: await loadAccommodation(), transport: await loadTransport(), sweep: await loadSweep() };
@@ -222,7 +223,7 @@ function createApp(
     const missing = closures.unmatched(settings.day);
     const note = missing.length ? ` ${missing.length} (${missing.map((c) => c.name).join(', ')}) are not on streets in the car roads, so they change nothing here.` : '';
     const diverted = buses?.diversions();
-    const busNote = diverted?.legs ? ` Buses on route ${diverted.routes.join(', ')} are sent round a closed street (modelled).` : '';
+    const busNote = diverted?.legs ? (diverted.routes.length > 6 ? ` ${diverted.routes.length} bus routes are sent round a closed street (modelled).` : ` Buses on route ${diverted.routes.join(', ')} are sent round a closed street (modelled).`) : '';
     return `Closures of ${date}, a typical Fringe ${settings.day}.${note}${busNote}`;
   }
   // Several input events in one frame (a fast scrub) cost one repaint.
@@ -375,9 +376,15 @@ function createApp(
     tracker.restart(FESTIVAL_DAY_START_S);
     controls.setImpact(tracker.view());
   }
+  /** The date being shown decides which of Lothian's closures to buses (Princes Street after the fire, from the notices) are in force. */
+  function feedBusDate() {
+    buses?.setDate(panel?.currentDate() ?? '');
+  }
   if (panel) {
     window.setInterval(feedTrips, 1000);
     window.setInterval(feedDestinations, 1000);
+    window.setInterval(feedBusDate, 1000);
+    feedBusDate();
   }
   coupling?.start();
   if (cars) {

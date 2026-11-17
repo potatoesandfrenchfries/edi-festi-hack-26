@@ -15,7 +15,6 @@ export interface CellStats {
 export class CellModel {
   constructor(roads: Roads, options?: { population?: number; dt?: number; seed?: number });
   E: number;
-  nodes: number;
   /** Seconds per step. */
   dt: number;
   /** Simulated seconds so far. */
@@ -38,6 +37,15 @@ export class CellModel {
   room: Float64Array;
   from: Int32Array;
   to: Int32Array;
+  /** Class index of each road, and the position of each junction, as in the car engine. */
+  cls: Uint8Array;
+  nodes: number;
+  nodeLon: Float64Array;
+  nodeLat: Float64Array;
+  mPerLon: number;
+  mPerLat: number;
+  inStart: Int32Array;
+  inEdges: Int32Array;
   /** The roads leaving each node (`out`, from `outStart`), as in the car engine. */
   outStart: Int32Array;
   out: Int32Array;
@@ -56,6 +64,8 @@ export class CellModel {
   setDestinations(nodes: ArrayLike<number>): void;
   /** Number of destinations (0 when circulating). */
   K: number;
+  /** Vehicles per second wanting in, per road and destination (`edge * K + k`). Set through `setSource`. */
+  sourceRate: Float64Array;
   /** Vehicles that have entered at sources and that have left, in total. */
   entered: number;
   exited: number;

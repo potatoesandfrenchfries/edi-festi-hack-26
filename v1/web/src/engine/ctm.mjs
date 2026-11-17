@@ -50,6 +50,15 @@ export class CellModel {
     this.classNames = roads.classes;
     this.popularity = Float32Array.from(edges, (e, i) => (POPULARITY[baseClass(roads.classes[e[2]])] ?? 1) * this.lanes[i]);
     this.closed = new Uint8Array(E);
+    // Geometry the trip helpers (trips.ts) read: the same fields the car engine has.
+    this.cls = this.classOf;
+    this.mPerLat = 111_320; this.mPerLon = 111_320 * Math.cos((roads.bbox ? (roads.bbox[1] + roads.bbox[3]) / 2 : 51.5) * Math.PI / 180);
+    this.nodeLon = new Float64Array(nodes); this.nodeLat = new Float64Array(nodes);
+    for (const edge of edges) {
+      const c = edge[8];
+      this.nodeLon[edge[0]] = c[0]; this.nodeLat[edge[0]] = c[1];
+      this.nodeLon[edge[1]] = c[c.length - 2]; this.nodeLat[edge[1]] = c[c.length - 1];
+    }
 
     // Incoming and outgoing edges per node (CSR).
     this.outStart = new Int32Array(nodes + 1); this.inStart = new Int32Array(nodes + 1);

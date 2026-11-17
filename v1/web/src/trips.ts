@@ -5,6 +5,9 @@
 // counts (trip-demand.ts). Where a closure cuts off the venue, the car parks at the nearest road it can reach and its driver walks the rest.
 import type { CarSim } from './engine/car-sim.mjs';
 
+/** The parts of a road graph the entry and parking helpers read; both the car engine and the cell model have them. */
+export type RoadGraph = Pick<CarSim, 'nodes' | 'E' | 'from' | 'to' | 'cls' | 'length' | 'lanes' | 'nodeLon' | 'nodeLat' | 'mPerLon' | 'mPerLat' | 'outStart' | 'inStart'>;
+
 export const SECTORS = ['north', 'west', 'south'] as const;
 export type Sector = (typeof SECTORS)[number];
 
@@ -65,7 +68,7 @@ interface Trip {
 export const emptyRates = (venues: number): TripRates => ({ inbound: Array(venues).fill(0), outbound: Array(venues).fill(0), mix: { local: 1, north: 0, west: 0, south: 0 } });
 
 /** Road nodes within SNAP_MAX_M of a point, nearest first, as [node, metres]. Only nodes with a road in and a road out can be driven to. */
-export function nearestNodes(sim: CarSim, lon: number, lat: number, count = CANDIDATES): [number, number][] {
+export function nearestNodes(sim: RoadGraph, lon: number, lat: number, count = CANDIDATES): [number, number][] {
   const hasOut = (n: number) => (sim.outStart[n + 1] as number) > (sim.outStart[n] as number);
   const hasIn = (n: number) => (sim.inStart[n + 1] as number) > (sim.inStart[n] as number);
   const found: [number, number][] = [];
@@ -78,7 +81,7 @@ export function nearestNodes(sim: CarSim, lon: number, lat: number, count = CAND
 }
 
 /** Entry roads (heading in) and exit roads (heading out) for each compass sector, found in the outer ring of the area. */
-export function gateways(sim: CarSim, classes: readonly string[]): { entry: Record<Sector, number[]>; exit: Record<Sector, number[]> } {
+export function gateways(sim: RoadGraph, classes: readonly string[]): { entry: Record<Sector, number[]>; exit: Record<Sector, number[]> } {
   let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
   for (let n = 0; n < sim.nodes; n++) {
     minLon = Math.min(minLon, sim.nodeLon[n] as number);

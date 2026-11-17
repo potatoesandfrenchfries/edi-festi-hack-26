@@ -5,6 +5,7 @@ import './styles.css';
 import { BUSES_LAYER, BusSimulation, describeBus, loadBusData, type BusData } from './buses';
 import { TENT_LAYER, TentLayer } from './tent';
 import { CarSimulation, loadCarData } from './cars';
+import { BusDiverter } from './bus-diversions';
 import { ClosureLayer, ClosureSchedule, loadClosures } from './closures';
 import { BusCarCoupling } from './coupling';
 import {
@@ -84,6 +85,8 @@ async function main() {
   // Also optional (`make closures`): streets closed to vehicles on a Fringe day. They only matter to the cars, so need the road graph.
   const closureData = await loadClosures();
   const closures = carData && closureData ? new ClosureSchedule(closureData, carData) : null;
+  // The buses that run along a closed street are sent round it (they follow their own timetable paths, not the car roads). Needs all three.
+  if (buses && busData && carData && closures) buses.setDiverter(new BusDiverter(carData, busData));
   // Also optional: the ticket-driven festival layer (`make demand accommodation tiles`), its travel assumptions (`make transport`) and the
   // sweep of configurations (`npm run scenarios`). Each is used if present and the page works without it.
   const festival = { demand: await loadDemand(), accommodation: await loadAccommodation(), transport: await loadTransport(), sweep: await loadSweep() };
@@ -218,7 +221,9 @@ function createApp(
     const date = new Date(`${closures.date(settings.day)}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const missing = closures.unmatched(settings.day);
     const note = missing.length ? ` ${missing.length} (${missing.map((c) => c.name).join(', ')}) are not on streets in the car roads, so they change nothing here.` : '';
-    return `Closures of ${date}, a typical Fringe ${settings.day}.${note}`;
+    const diverted = buses?.diversions();
+    const busNote = diverted?.legs ? ` Buses on route ${diverted.routes.join(', ')} are sent round a closed street (modelled).` : '';
+    return `Closures of ${date}, a typical Fringe ${settings.day}.${note}${busNote}`;
   }
   // Several input events in one frame (a fast scrub) cost one repaint.
   const schedule = () => {
@@ -265,6 +270,7 @@ function createApp(
       setCarDemand: (fraction) => cars?.setDemand(fraction),
       setClosedEdges: (edges) => {
         cars?.setClosedEdges(edges);
+        buses?.setClosedEdges(edges);
         closureLayer.setStreets(closures ? closures.streets(edges) : null);
       },
       speed: () => settings.busSpeed,

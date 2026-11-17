@@ -2,6 +2,7 @@
 // and price what it cost in time, fuel and carbon. Headless: no map, worker or clock, so the same code serves tests, the command-line
 // sweep (scripts/scenarios.ts) and the browser. A modelled ESTIMATE from placeholder constants, never a measurement.
 import { allBuses, createModel, timetableRates, type BusData } from './buses';
+import { BusDiverter } from './bus-diversions';
 import { MAX_DEMAND, TRIP_SLOTS, type CarData } from './cars';
 import { CarRunner } from './cars-runner';
 import type { ClosureSchedule } from './closures';
@@ -88,7 +89,10 @@ export function runScenario(inputs: Inputs, scenario: Scenario): Outcome {
   const day = dayTypeOf(scenario.date);
   const venues = tripVenues(demand);
   const base = departuresPerHour(busData, transport);
-  const model = busData ? createModel(busData, levers.busFrequency) : null;
+  const timetable = busData ? createModel(busData, levers.busFrequency) : null; // what the frequency lever alone does: priced below
+  let model = timetable; // where the buses are, which the closures change (diversions)
+  // With the closures on, the buses that run along a closed street go round it, as they do on the map.
+  const diverter = busData && closures && levers.closures ? new BusDiverter(roads, busData) : null;
 
   const runner = new CarRunner(() => undefined);
   runner.handle({
@@ -132,6 +136,7 @@ export function runScenario(inputs: Inputs, scenario: Scenario): Outcome {
       if (key !== closedKey) {
         closedKey = key;
         runner.handle({ type: 'closed', edges: now.edges });
+        if (busData && diverter) model = createModel(diverter.apply(now.edges).data, levers.busFrequency);
       }
       if (clock >= from * 3600) for (const c of now.active) closedStreets.add(c.name);
     }
@@ -157,7 +162,9 @@ export function runScenario(inputs: Inputs, scenario: Scenario): Outcome {
   let busKm = shuttleKm;
   if (busData) {
     const today = timetableRates(createModel(busData, 1));
-    const now = timetableRates(model!);
+    // Priced from the timetable at this frequency, not the diverted one: a diversion's extra kilometres are left out (route 14's detour is
+    // a few hundred metres), and a longer diverted run must not change how many buses a route is counted as needing.
+    const now = timetableRates(timetable!);
     const delta = { buses: now.buses - today.buses, metresPerSecond: (now.metresPerSecond - today.metresPerSecond) * transport.bus.festival_routes_share, delayBuses: 0, idleBuses: 0 };
     const extra = busIncrement(scaled, delta, seconds);
     busKm += (delta.metresPerSecond * seconds) / 1000;

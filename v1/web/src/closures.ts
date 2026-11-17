@@ -1,7 +1,8 @@
 // Festival street closures: streets that vehicles may not enter at set times on a typical Fringe day (the council's Summertime Streets
 // and Tattoo restrictions, from ../../../closures, written to data/closures.json by `uv run python -m closures.web`). The schedule says
 // which OSM ways are closed and when; the car road graph keeps each edge's OSM way id, so the two are joined on it. A closure on a way
-// that is not in the graph (pedestrian streets are left out of it) cannot be shown, and `unmatched` says so.
+// that is not in the graph (pedestrian streets are left out of it) cannot be shown, and `unmatched` says so. The cars stop at a closed street;
+// the buses, which follow their own timetable paths, are diverted round it where they run along it (bus-diversions.ts).
 import * as maplibregl from 'maplibre-gl';
 import type { DayType } from './presence';
 import type { Roads } from './engine/car-sim.mjs';

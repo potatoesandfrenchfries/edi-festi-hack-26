@@ -33,6 +33,22 @@ export interface BusLeg {
   /** Arrival and departure seconds of each stop, interleaved, relative to the start of the leg. */
   times: number[];
   headsign: string;
+  /** Set when this path was sent round a street closed to vehicles (bus-diversions.ts): the closed stretch and its stops are gone. */
+  diverted?: boolean;
+}
+/** What the diversions around the closed streets did to the timetable, for the panel. */
+export interface DiversionStats {
+  /** Paths (one direction of one route) diverted, the routes they belong to, the extra metres the detours add and the stops skipped. */
+  legs: number;
+  routes: string[];
+  extraMetres: number;
+  skippedStops: number;
+  /** Closed stretches no detour could be found for: those buses run the closed street as before. */
+  failed: { route: string; reason: string }[];
+}
+/** Gives the timetable as it runs while these roads (edge indexes in the car road graph) are closed. Implemented by BusDiverter. */
+export interface BusDiverterLike {
+  apply(closedEdges: readonly number[]): { data: BusData; stats: DiversionStats };
 }
 export interface BusRoute {
   name: string;
@@ -234,6 +250,7 @@ const OPERATORS: Record<Agency, string> = { LOTH: 'Lothian Buses', NELB: 'Lothia
 
 /** Popup text. Only things that stay true as the bus moves: the popup is not redrawn each frame. */
 export function describeBus(bus: Bus, data: BusData): PopupContent {
+  const leg = bus.route.legs[bus.leg] as BusLeg;
   const headway = Math.round(bus.route.headway / 60);
   return {
     title: `Route ${bus.route.name}`,
@@ -243,6 +260,7 @@ export function describeBus(bus: Bus, data: BusData): PopupContent {
       ['Frequency', `about every ${headway} min, simulated`],
     ],
     flags: [
+      ...(leg.diverted ? ['Diverted round a street closed to vehicles (modelled: no diversion notice for this year was found)'] : []),
       'Simulated position, not a live bus',
       `Frequency taken from a typical weekday (${data.meta.typicalDay}), not the day's timetable`,
     ],
@@ -308,12 +326,19 @@ export class BusSimulation {
   private traffic: BusTraffic | null = null;
   private trafficOn = true;
   private lastGlow = 0;
+  /** Finds the way round a closed street for the buses that run along it. Without one, closures do not touch the buses. */
+  private diverter: BusDiverterLike | null = null;
+  private closedEdges: readonly number[] = [];
+  /** The timetable as it runs now: `data`, or `data` with the diversions for the closed streets. */
+  private running: BusData;
+  private diversion: DiversionStats | null = null;
 
   constructor(
     private readonly data: BusData,
     /** Minimum milliseconds between map updates: ~33 normally, a slow cadence for reduced motion. */
     private drawEveryMs = 33,
   ) {
+    this.running = data;
     this.model = createModel(data);
   }
 
@@ -398,7 +423,33 @@ export class BusSimulation {
   setFrequency(frequency: number): void {
     if (!(frequency > 0) || frequency === this.frequency) return;
     this.frequency = frequency;
-    this.model = createModel(this.data, frequency);
+    this.rebuild();
+  }
+  /** Lets the buses be diverted round closed streets (see bus-diversions.ts). */
+  setDiverter(diverter: BusDiverterLike | null): void {
+    this.diverter = diverter;
+    this.updateRunning();
+    this.rebuild();
+  }
+  /** The streets closed to vehicles now (edge indexes in the car road graph). The buses that run along them are diverted until they reopen. */
+  setClosedEdges(edges: readonly number[]): void {
+    if (edges.length === this.closedEdges.length && edges.every((e, i) => e === this.closedEdges[i])) return;
+    this.closedEdges = [...edges];
+    this.updateRunning();
+    this.rebuild();
+  }
+  /** What the diversions are doing now, or null when no street is closed or buses cannot be diverted. */
+  diversions(): DiversionStats | null {
+    return this.diversion;
+  }
+  private updateRunning(): void {
+    const result = this.diverter && this.closedEdges.length ? this.diverter.apply(this.closedEdges) : null;
+    this.running = result?.data ?? this.data;
+    this.diversion = result && result.stats.legs + result.stats.failed.length > 0 ? result.stats : null;
+  }
+  /** Rebuilds the fleet from where the replay has it now, for a new frequency or a new set of diversions. */
+  private rebuild(): void {
+    this.model = createModel(this.running, this.frequency);
     this.selectBus(null);
     this.traffic = this.trafficOn ? new BusTraffic(this.model, this.t) : null;
     this.lastGlow = 0;

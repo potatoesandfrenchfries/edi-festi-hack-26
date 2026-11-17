@@ -8,7 +8,6 @@ type Map = {
   getStyle(): { sources: object };
   queryRenderedFeatures(geometry?: undefined, options?: { layers: string[] }): { properties: { height_m: number }; geometry: { type: string; coordinates: number[][][] } }[];
   getLayer(id: string): object | undefined;
-  querySourceFeatures(source: string): { properties: object }[];
   getPaintProperty(layer: string, name: string): unknown;
   getLayoutProperty(layer: string, name: string): unknown;
   jumpTo(options: object): void;
@@ -146,26 +145,20 @@ test.describe('with road data', () => {
 test.describe('with road data (signals)', () => {
   test.skip(!hasTiles || !hasCars, 'run `make tiles` and `make cars` first');
 
-  test('draws the traffic signals under the cars in a modelled cycle, and hides them with the switch', async ({ page }) => {
+  test('draws 3D traffic signals, keeping the dots only as the fallback', async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto('/');
     await page.waitForFunction(() => (window as unknown as { edinburghPresence?: Handle }).edinburghPresence?.state.buildings === true);
     await page.getByRole('tab', { name: 'Display' }).click();
     await expect(page.locator('#show-cars')).toBeChecked();
-    // Zoomed in on the signals round St Andrew Square, where the dots are drawn (they start at zoom 14).
-    await page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.jumpTo({ center: [-3.1937, 55.953], zoom: 17 }));
-    const states = () =>
-      page.evaluate(() => {
-        const features = (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.querySourceFeatures('signals');
-        return [...new Set(features.map((f) => (f.properties as unknown as { s: number }).s))].sort();
-      });
-    await expect.poll(async () => (await states()).length, { timeout: 30000 }).toBeGreaterThan(1); // the cycle gives more than one colour at once
-    const layer = (name: string) => page.evaluate((n) => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayoutProperty('signals-layer', n), name);
-    expect(await layer('visibility')).toBe('visible');
-    await page.locator('#show-cars').uncheck();
-    await expect.poll(() => layer('visibility')).toBe('none');
-    await page.locator('#show-cars').check();
-    await expect.poll(() => layer('visibility')).toBe('visible');
+    // Zoomed in on the signals round St Andrew Square, where they are drawn (they start at zoom 14), with the cars running so frames arrive.
+    await page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.jumpTo({ center: [-3.1937, 55.953], zoom: 17, pitch: 55 }));
+    const hasLayer = (id: string) => page.evaluate((i) => Boolean((window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayer(i)), id);
+    const dots = () => page.evaluate(() => (window as unknown as { edinburghPresence: Handle }).edinburghPresence.map.getLayoutProperty('signals-layer', 'visibility'));
+    await expect.poll(() => hasLayer('signals-3d')).toBe(true);
+    // The 3D signals started, so the dots (the fallback) stay hidden. The colour cycle is covered by the unit tests (signals.test.ts, signal3d.test.ts).
+    await expect.poll(dots).toBe('none');
+    await page.waitForTimeout(3000); // a few frames drawn with the signals in view
     expect(errors).toEqual([]);
   });
 });

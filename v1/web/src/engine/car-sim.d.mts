@@ -17,6 +17,9 @@ export interface CarStats {
   fleet: number;
 }
 
+/** Signal states as `signalState` returns them. */
+export const GREEN: 0, AMBER: 1, RED: 2;
+
 /** The engine's seeded random generator. */
 export function mulberry32(seed: number): () => number;
 

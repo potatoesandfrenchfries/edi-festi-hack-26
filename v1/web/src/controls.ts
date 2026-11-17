@@ -242,7 +242,7 @@ export function initControls(
     setCarsAvailable(available: boolean) {
       showCars.disabled = !available;
       $('show-cars-hint').textContent = available
-        ? 'Cars driving the mapped streets, queueing at signals. Not real traffic.'
+        ? 'Cars driving the mapped streets, queueing at signals (the dots: a modelled 90 s cycle, not real timings). Not real traffic.'
         : 'Not built. Run make cars, then reload.';
       render();
     },

@@ -85,12 +85,16 @@ export interface ReadyMessage {
   capacity: number;
   /** For each venue given at init, whether a road lies within reach of it. */
   venuesPlaced?: boolean[];
+  /** Where each signalised approach's stop line is ([longitude, latitude, ...], fixed for the run); the frames carry their states. */
+  signalPositions?: Float64Array;
 }
 /** `data` holds FLOATS_PER_CAR numbers per car: longitude, latitude, bearing (degrees), speed (m/s), personality index. */
 export interface FrameMessage {
   type: 'frame';
   time: number;
   data: Float32Array;
+  /** The state of each signalised approach in the order of `ReadyMessage.signalPositions`: 0 green, 1 amber, 2 red. Modelled cycle, not real timings. */
+  signals?: Uint8Array;
 }
 export interface ErrorMessage {
   type: 'error';

@@ -86,7 +86,7 @@ export class CarRunner {
         this.relocated = this.sinceRelief = 0;
         this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
         this.target = this.sim.time;
-        this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed() });
+        this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed(), signalPositions: this.sim.approachPositions() });
       } else if (message.type === 'demand') {
         if (this.sim) this.applyDemand(this.sim, message.fraction);
       } else if (message.type === 'trips') {
@@ -305,6 +305,8 @@ export class CarRunner {
       data.set([where[0] as number, where[1] as number, where[2] as number, sim.v[i] as number, sim.kind[i] as number], k * FLOATS_PER_CAR);
       k++;
     }
-    this.post({ type: 'frame', time: sim.time, data }, [data.buffer]);
+    const signals = new Uint8Array(sim.approaches.length);
+    for (let k = 0; k < signals.length; k++) signals[k] = sim.signalState(sim.approaches[k] as number);
+    this.post({ type: 'frame', time: sim.time, data, signals }, [data.buffer]);
   }
 }

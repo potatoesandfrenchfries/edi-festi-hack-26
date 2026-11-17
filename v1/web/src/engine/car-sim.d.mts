@@ -62,6 +62,12 @@ export class CarSim {
   /** Quickest route (road ids) from node `start` to node `goal` on roads that are not dead, or null. Cached until the closures change. */
   findDetour(start: number, goal: number): Int32Array | null;
   signalCount: number;
+  /** The roads that end at a signalised junction, one entry per approach (the order of `approachPositions`). */
+  approaches: Int32Array;
+  /** Where each approach's stop line is: [longitude, latitude, ...] in approach order. Fixed for the run. */
+  approachPositions(): Float64Array;
+  /** The signal at the end of road `e` at simulated time `t` (default now): 0 green, 1 amber, 2 red. Roads without a signal are always green. */
+  signalState(e: number, t?: number): 0 | 1 | 2;
   redHolds: number;
   // Per-car and per-road state, read and written by the gridlock relief in cars-runner.ts (the same fields the engine's own `spawn` sets).
   edge: Int32Array;

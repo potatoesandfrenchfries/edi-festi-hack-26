@@ -54,7 +54,7 @@ export function carGeometry(): { body: THREE.BufferGeometry; glass: THREE.Buffer
 }
 
 export class Car3dLayer implements maplibregl.CustomLayerInterface {
-  readonly id = CAR3D_LAYER;
+  readonly id: string;
   readonly type = 'custom' as const;
   readonly renderingMode = '3d' as const;
 
@@ -72,7 +72,9 @@ export class Car3dLayer implements maplibregl.CustomLayerInterface {
   private readonly origin = maplibregl.MercatorCoordinate.fromLngLat(ORIGIN);
 
   /** `onUnavailable` runs if the models cannot be set up, so the caller can keep the dots visible. */
-  constructor(private readonly onUnavailable: () => void) {}
+  constructor(private readonly onUnavailable: () => void, id: string = CAR3D_LAYER) {
+    this.id = id;
+  }
 
   /** The cars to draw: FLOATS_PER_CAR numbers each (longitude, latitude, bearing, speed, personality index). */
   setFrame(frame: Float32Array): void {

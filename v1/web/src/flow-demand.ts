@@ -10,8 +10,14 @@ import { SECTORS, gateways, nearestNodes, type OriginMix, type RoadGraph, type S
 const MAX_PER_SECTOR = 3; // entry roads and exit roads kept per sector: enough to spread the load, few enough to keep the destinations few
 const LOCAL_SOURCES = 120; // roads that stand in for "anywhere in the area" when locals start their journey
 const HOUR = 3600;
-/** placeholder: through traffic entering at each gateway sector at a demand of 1, vehicles per hour (real vehicles, not simulated cars) */
-export const BACKGROUND_PER_HOUR = 600;
+/** placeholder: background traffic entering at each gateway sector at a demand of 1, vehicles per hour (real vehicles, not simulated cars) */
+export const BACKGROUND_PER_HOUR = 400;
+const PLACES = 16; // placeholder: junctions spread over the area (by lane-metres) that ordinary trips go to and from
+// placeholder: how the background splits. Of each gateway's flow: some passes through to another sector, some goes to a place, and as
+// much again leaves from places by a gateway; locals also drive between places without leaving the area.
+const THROUGH_SHARE = 0.3;
+const TO_PLACES_SHARE = 0.35;
+const LOCAL_SHARE = 0.5; // locals' trips between places, as a share of one gateway's flow
 
 export interface FlowOptions {
   /** Real vehicles each simulated car stands for: the trip rates are per simulated car, the model's capacities are for real vehicles. */
@@ -28,6 +34,8 @@ export class FlowDemand {
   private readonly entry: Record<Sector, number[]>;
   private readonly exitDestinations: Record<Sector, number[]>;
   private readonly venueRoads: number[][];
+  /** Destination index and departure roads of each ordinary place. */
+  private readonly places: { destination: number; roads: number[] }[] = [];
   private readonly locals: number[];
   private readonly background: number;
   private rates: TripRates | null = null;
@@ -59,6 +67,11 @@ export class FlowDemand {
       }
     }
     this.locals = spread(model, LOCAL_SOURCES);
+    for (const e of spread(model, PLACES)) {
+      const node = model.to[e] as number;
+      this.destinations.push(node);
+      this.places.push({ destination: this.destinations.length - 1, roads: roadsFrom(model, node) });
+    }
     model.setDestinations(this.destinations);
   }
 
@@ -101,10 +114,24 @@ export class FlowDemand {
         }
       });
     }
-    // Through traffic: each gateway's flow heads for the other two sectors' exits.
+    this.applyBackground(add);
+  }
+
+  // Ordinary traffic: through trips between gateways, trips from a gateway to a place, trips from a place out by a gateway, and locals
+  // driving between places. A flow of `background x demand` vehicles an hour enters at each gateway sector.
+  private applyBackground(add: (edges: readonly number[], vehiclesPerHour: number, destination: number) => void): void {
+    const base = this.background * this.demand;
+    if (base <= 0) return;
     for (const s of SECTORS) {
-      const targets = SECTORS.filter((o) => o !== s).flatMap((o) => this.exitDestinations[o]);
-      for (const d of targets) add(this.entry[s], (this.background * this.demand) / targets.length, d);
+      const others = SECTORS.filter((o) => o !== s).flatMap((o) => this.exitDestinations[o]);
+      for (const d of others) add(this.entry[s], (base * THROUGH_SHARE) / others.length, d);
+      for (const place of this.places) add(this.entry[s], (base * TO_PLACES_SHARE) / this.places.length, place.destination);
+    }
+    const exits = SECTORS.flatMap((s) => this.exitDestinations[s]);
+    for (const place of this.places) {
+      const leaving = (base * SECTORS.length * TO_PLACES_SHARE) / this.places.length;
+      for (const d of exits) add(place.roads, leaving / exits.length, d);
+      for (const other of this.places) if (other !== place) add(this.locals, (base * LOCAL_SHARE) / this.places.length / (this.places.length - 1), other.destination);
     }
   }
 }

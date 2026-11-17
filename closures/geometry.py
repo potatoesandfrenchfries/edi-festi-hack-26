@@ -21,8 +21,12 @@ NAMES = ["High Street", "Parliament Square", "Cockburn Street", "St Giles' Stree
 
 # way ids chosen by hand from the Overpass result; coordinates are (lat, lon)
 LOCATIONS = {
-    "high_street": dict(name="High Street", ways=[2956321, 4827442, 355968075, 1325614179, 4791806],
-                        confidence="medium", note="Council gives no extent; Lawnmarket/George IV Bridge end to Cockburn/Blair Street end"),
+    # The whole OSM High Street, west to east: Lawnmarket 4791807 (the 48 m link between George IV Bridge and High Street), then the
+    # High Street ways to the Netherbow (4684282 is the 196 m tertiary stretch past Blair Street). The first version stopped at Blair
+    # Street and left 4791807, 1103529518 and 4684282 open, which in the car road graph is about 500 m of the Royal Mile open to cars.
+    "high_street": dict(name="High Street", ways=[4791807, 2956321, 4827442, 355968075, 1325614179, 4791806, 1103529518, 4684282],
+                        confidence="medium",
+                        note="Council gives no extent; taken as all of the OSM High Street, George IV Bridge end to the Netherbow (Canongate is not included)"),
     "parliament_square": dict(name="Parliament Square", ways=[4827443, 231671129], confidence="high"),
     "cockburn_street": dict(name="Cockburn Street", ways=[4235347, 1498438113], confidence="high"),
     "st_giles_street": dict(name="St Giles' Street", ways=[1313303854], confidence="medium",

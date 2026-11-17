@@ -110,3 +110,13 @@ def test_real_schedule_closes_the_old_town_on_a_fringe_saturday():
     assert "george_street_hanover_frederick" not in names  # withdrawn after the Princes Street fire
     high = [c for c in out["days"]["saturday"]["closures"] if c["location"] == "high_street"]
     assert [(c["from"], c["to"]) for c in high] == [(10 * 3600 + 1800, 21 * 3600)]  # weekend: 10:30 to 21:00
+
+
+def test_high_street_covers_every_osm_way_of_the_royal_mile_in_the_road_graph():
+    """The first hand-picked list left three connected ways open (about 500 m of the Royal Mile to cars in the car road graph)."""
+    from closures import geometry
+
+    ways = geometry.LOCATIONS["high_street"]["ways"]
+    for way in (4791807, 1103529518, 4684282):  # the Lawnmarket link east of George IV Bridge, and the two High Street ways past Blair Street
+        assert way in ways
+    assert len(ways) == len(set(ways))

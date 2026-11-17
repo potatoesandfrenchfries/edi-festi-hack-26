@@ -46,9 +46,15 @@ export interface DiversionStats {
   /** Closed stretches no detour could be found for: those buses run the closed street as before. */
   failed: { route: string; reason: string }[];
 }
-/** Gives the timetable as it runs while these roads (edge indexes in the car road graph) are closed. Implemented by BusDiverter. */
+/** A diversion rule in force (bus-diversions.ts); the simulation only passes it back to the diverter. */
+export interface BusRuleRef {
+  id: string;
+}
+/** Gives the timetable as it runs while these roads (edge indexes in the car road graph) are closed, and these rules (closures to buses only, from Lothian's notices) are in force. Implemented by BusDiverter. */
 export interface BusDiverterLike {
-  apply(closedEdges: readonly number[]): { data: BusData; stats: DiversionStats };
+  apply(closedEdges: readonly number[], rules?: readonly BusRuleRef[]): { data: BusData; stats: DiversionStats };
+  /** The rules in force on this date (YYYY-MM-DD). */
+  rulesAt(date: string): readonly BusRuleRef[];
 }
 export interface BusRoute {
   name: string;
@@ -329,6 +335,7 @@ export class BusSimulation {
   /** Finds the way round a closed street for the buses that run along it. Without one, closures do not touch the buses. */
   private diverter: BusDiverterLike | null = null;
   private closedEdges: readonly number[] = [];
+  private rules: readonly BusRuleRef[] = [];
   /** The timetable as it runs now: `data`, or `data` with the diversions for the closed streets. */
   private running: BusData;
   private diversion: DiversionStats | null = null;
@@ -438,12 +445,20 @@ export class BusSimulation {
     this.updateRunning();
     this.rebuild();
   }
+  /** The date being shown (YYYY-MM-DD, or empty for none): the closures to buses that the notices give for that day apply. */
+  setDate(date: string): void {
+    const rules = this.diverter?.rulesAt(date) ?? [];
+    if (rules.length === this.rules.length && rules.every((r, i) => r === this.rules[i] || r.id === this.rules[i]?.id)) return;
+    this.rules = rules;
+    this.updateRunning();
+    this.rebuild();
+  }
   /** What the diversions are doing now, or null when no street is closed or buses cannot be diverted. */
   diversions(): DiversionStats | null {
     return this.diversion;
   }
   private updateRunning(): void {
-    const result = this.diverter && this.closedEdges.length ? this.diverter.apply(this.closedEdges) : null;
+    const result = this.diverter && (this.closedEdges.length || this.rules.length) ? this.diverter.apply(this.closedEdges, this.rules) : null;
     this.running = result?.data ?? this.data;
     this.diversion = result && result.stats.legs + result.stats.failed.length > 0 ? result.stats : null;
   }

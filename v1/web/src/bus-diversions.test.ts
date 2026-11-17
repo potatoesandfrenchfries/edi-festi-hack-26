@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allBuses, BusSimulation, createModel, decodeShape, type BusData, type BusRoute } from './buses';
-import { BusDiverter, DETOUR_SPEED_M_S, encodeShape, findRuns, isDiverted, NEAR_M } from './bus-diversions';
+import { BusDiverter, DETOUR_SPEED_M_S, DIVERSION_RULES, encodeShape, findRuns, isDiverted, NEAR_M, rulesAt, type DiversionRule } from './bus-diversions';
 import { gridRoads } from './grid-roads.testutil';
 
 // The grid: node = row * 7 + col, 0.002 degrees apart (about 125 m east-west). Row 3 is the street the buses run along.
@@ -180,6 +180,119 @@ describe('the bus simulation with closures', () => {
     const sim = new BusSimulation(data([alongRow]));
     sim.setClosedEdges(closedStretch);
     expect(sim.diversions()).toBeNull();
+    expect(sim.model.routes[0]!.legs[0]!.diverted).toBeUndefined();
+  });
+});
+
+describe('closures to buses from the notices (rules)', () => {
+  // The same grid, but with the row-3 street between columns 2 and 4 missing from the car graph, as a bus-only street is, and named streets
+  // to go round by: Col2 and Col4 (vertical), Up (row 4) and Down (row 2).
+  const names = ['', 'Col2', 'Col4', 'Up', 'Down'];
+  const nameOf = (a: number, b: number): number => {
+    const [ra, ca] = [Math.floor(a / SIDE), a % SIDE];
+    const [rb, cb] = [Math.floor(b / SIDE), b % SIDE];
+    if (ca === 2 && cb === 2 && ra >= 2 && ra <= 4 && rb >= 2 && rb <= 4) return 1;
+    if (ca === 4 && cb === 4 && ra >= 2 && ra <= 4 && rb >= 2 && rb <= 4) return 2;
+    if (ra === 4 && rb === 4 && ca >= 2 && ca <= 4 && cb >= 2 && cb <= 4) return 3;
+    if (ra === 2 && rb === 2 && ca >= 2 && ca <= 4 && cb >= 2 && cb <= 4) return 4;
+    return 0;
+  };
+  const gap = new Set([node(3, 2) * 100 + node(3, 3), node(3, 3) * 100 + node(3, 2), node(3, 3) * 100 + node(3, 4), node(3, 4) * 100 + node(3, 3)]);
+  const gapRoads = {
+    ...roads,
+    names,
+    edges: roads.edges.filter((e) => !gap.has((e[0] as number) * 100 + (e[1] as number))).map((e) => [...e.slice(0, 10), nameOf(e[0] as number, e[1] as number)]),
+  };
+  const section = { name: 'Main Street', line: [[lonOf(2), latOf(3)], [lonOf(4), latOf(3)]] as const };
+  const rule = (via: DiversionRule['via']): DiversionRule => ({ id: 'test', source: 'test', from: '2026-08-01', to: '2026-08-31', section, via });
+  const westShape = encodeShape([6, 5, 4, 3, 2, 1, 0].map(lonOf), Array(7).fill(latOf(3)), SCALE);
+  const westCum = decodeShape(westShape, SCALE).cum;
+  const westRoute: BusRoute = {
+    name: 'W', agency: 'LOTH', headway: 600,
+    legs: [{ shape: 2, stops: [0, 1, 2, 3], dists: [0, 1, 5, 6].map((c) => westCum[c] as number), times: [0, 0, 40, 50, 190, 200, 240, 240], headsign: 'West' }],
+  };
+  const timetable = (routes: BusRoute[]): BusData => ({ ...data(routes), shapes: [rowShape, columnShape, westShape] });
+  const lats = (out: BusData, route: string) => {
+    const leg = out.routes.find((r) => r.name === route)!.legs[0]!;
+    return Array.from(decodeShape(out.shapes[leg.shape]!, SCALE).lat);
+  };
+  const touches = (list: number[], lat: number) => list.some((y) => Math.abs(y - lat) < 0.00002);
+
+  it('is in force only between its dates, and a diversion starts on its own date', () => {
+    const r = rule([{ from: '2026-08-10', routes: ['9'], direction: 'east', streets: ['Col2', 'Up', 'Col4'] }]);
+    expect(rulesAt('2026-07-31', [r])).toEqual([]);
+    expect(rulesAt('', [r])).toEqual([]);
+    expect(rulesAt('2026-08-05', [r])[0]!.via).toHaveLength(0);
+    expect(rulesAt('2026-08-10', [r])[0]!.via).toHaveLength(1);
+    expect(rulesAt('2026-08-31', [r])).toHaveLength(1);
+    expect(rulesAt('2026-09-01', [r])).toEqual([]);
+    expect(rulesAt('2026-08-05', [r])[0]!.id).not.toBe(rulesAt('2026-08-10', [r])[0]!.id); // a change in what has started is noticed
+  });
+  it('the Princes Street rule is there for the festival, with its section and the six routes the 5 August notice names', () => {
+    const princes = DIVERSION_RULES.find((r) => r.id === 'princes-street-fire-2026')!;
+    expect([princes.from, princes.to]).toEqual(['2026-07-09', '2026-08-28']);
+    expect(rulesAt('2026-08-15')).toHaveLength(1);
+    expect(rulesAt('2026-08-29')).toEqual([]);
+    expect(princes.via.flatMap((v) => v.routes).sort()).toEqual(['106', '106', '43', '43', 'X6', 'X6']);
+    expect(princes.section.line).toHaveLength(2);
+  });
+
+  it('sends every bus along the closed section round it, though no road of the graph is closed', () => {
+    const diverter = new BusDiverter(gapRoads, timetable([alongRow]), new Set(), [rule([])]);
+    const out = diverter.apply([], diverter.rulesAt('2026-08-15'));
+    expect(out.stats).toMatchObject({ legs: 1, routes: ['9'], skippedStops: 2 });
+    const y = lats(out.data, '9');
+    expect(y.some((v) => Math.abs(v - latOf(3)) > 0.0005)).toBe(true); // it left row 3
+  });
+  it('follows the streets a notice names, in the direction it names them', () => {
+    const east = new BusDiverter(gapRoads, timetable([alongRow, westRoute]), new Set(), [
+      rule([
+        { routes: ['9'], direction: 'east', streets: ['Col2', 'Up', 'Col4'] },
+        { routes: ['W'], direction: 'west', streets: ['Col4', 'Down', 'Col2'] },
+      ]),
+    ]);
+    const out = east.apply([], east.rulesAt('2026-08-15')).data;
+    const eastY = lats(out, '9');
+    const westY = lats(out, 'W');
+    expect(touches(eastY, latOf(4))).toBe(true);
+    expect(touches(eastY, latOf(2))).toBe(false);
+    expect(touches(westY, latOf(2))).toBe(true);
+    expect(touches(westY, latOf(4))).toBe(false);
+  });
+  it('a route not named gets the quickest way round, and a named street that is not in the graph is ignored', () => {
+    const d = new BusDiverter(gapRoads, timetable([alongRow]), new Set(), [rule([{ routes: ['9'], direction: 'east', streets: ['Nowhere Road', 'Col4'] }])]);
+    const out = d.apply([], d.rulesAt('2026-08-15'));
+    expect(out.stats.legs).toBe(1); // diverted all the same
+    const other = new BusDiverter(gapRoads, timetable([alongRow]), new Set(), [rule([{ routes: ['X'], direction: 'east', streets: ['Col2', 'Down', 'Col4'] }])]);
+    expect(other.apply([], other.rulesAt('2026-08-15')).stats.legs).toBe(1); // route 9 is not X
+  });
+  it('joins streets that do not meet by the quickest way between them', () => {
+    const d = new BusDiverter(gapRoads, timetable([alongRow]), new Set(), [rule([{ routes: ['9'], direction: 'east', streets: ['Col2', 'Col4'] }])]);
+    const out = d.apply([], d.rulesAt('2026-08-15'));
+    expect(out.stats.legs).toBe(1);
+    expect(lats(out.data, '9').some((v) => Math.abs(v - latOf(3)) > 0.0005)).toBe(true);
+  });
+  it('changes nothing out of its dates, and a route that crosses the section is left alone', () => {
+    const d = new BusDiverter(gapRoads, timetable([alongRow, acrossRow]), new Set(), [rule([])]);
+    const before = timetable([alongRow, acrossRow]);
+    expect(d.apply([], d.rulesAt('2026-09-15')).stats.legs).toBe(0);
+    const out = d.apply([], d.rulesAt('2026-08-15'));
+    expect(out.data.routes[1]).toEqual(before.routes[1]);
+    expect(out.stats.routes).toEqual(['9']);
+  });
+  it('the bus simulation follows the date: diverted inside the dates, back outside, and nothing is rebuilt for the same date', () => {
+    const tt = timetable([alongRow]);
+    const sim = new BusSimulation(tt);
+    sim.setDiverter(new BusDiverter(gapRoads, tt, new Set(), [rule([])]));
+    sim.setDate('2026-08-15');
+    expect(sim.model.routes[0]!.legs[0]!.diverted).toBe(true);
+    const model = sim.model;
+    sim.setDate('2026-08-16');
+    expect(sim.model).toBe(model);
+    sim.setDate('2026-09-15');
+    expect(sim.model.routes[0]!.legs[0]!.diverted).toBeUndefined();
+    expect(sim.diversions()).toBeNull();
+    sim.setDate('');
     expect(sim.model.routes[0]!.legs[0]!.diverted).toBeUndefined();
   });
 });

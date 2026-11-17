@@ -25,6 +25,11 @@ Fetched on 2026-10-29 for the **pilot area** only (Old Town and New Town, `confi
 - Why: to see whether a past festival timetable shows the festival bus diversions. It does not: the Lothian trips carry no `shape_id` (no route paths), and its August 2023 dates have the same trip counts as June and July (4,583 on Saturdays), so diversions are not in the filed timetable. Nothing here is read by the pipeline or the web app.
 - Licence: the Zenodo record has no licence field; the underlying DfT Bus Open Data Service data is Open Government Licence v3.0. Verify before reusing.
 
+### Lothian Buses service notices, August 2026 (read, hardcoded in `web/src/bus-diversions.ts`)
+- Pages read 2026-11-17: https://www.lothianbuses.com/news/2026/07/partial-closure-of-princes-street/ (closure after the fire of 9 July 2026, reopening 29 August), https://www.lothianbuses.com/news/2026/08/bus-services-set-to-return-to-princes-street/ (buses back 29 August), https://theedinburghreporter.co.uk/2026/08/changes-to-bus-diversions-on-princes-street/ and https://www.digitalsentinel.net/2026/08/lothian-buses-announce-bus-diversion-changes/ (the 5 August diversions of routes 15, 33, 34, 43, 106 and X6).
+- Used for: the dates of the Princes Street closure and the streets routes 43, 106 and X6 take. Prose, transcribed by hand (street names, dates, route numbers); no file was downloaded and no timetable data comes from it. Not modelled: routes 15, 33 and 34 (the notice does not say where they rejoin their route).
+- Licence: none stated on the pages. Only facts (dates, street names, route numbers) are used, not their text.
+
 ### Overture Maps buildings and building parts
 - Script: `pipeline/fetch_overture.py`. Release pinned to `2026-10-21.0`, read from `s3://overturemaps-us-west-2/release/2026-10-21.0/theme=buildings/` with a bounding-box filter.
 - Docs: https://docs.overturemaps.org/guides/buildings

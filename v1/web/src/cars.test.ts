@@ -186,6 +186,31 @@ describe('CarRunner', () => {
       runner.handle(closed([]));
       expect(runner.closedRoads()).toBe(0);
     });
+    it('moves a turned-round car that has nowhere to back into, instead of leaving it on a closed road', () => {
+      // Every road is closed except one short pocket in a corner, so a car caught elsewhere turns round at the closure and then has no
+      // open road to go to. It used to wait there until a road reopened (its wait time was reset every step, so the gridlock relief never
+      // saw it); now the relief moves it to the open pocket.
+      const roads = gridRoads(5);
+      const node = (row: number, col: number) => row * 5 + col;
+      const pocket = roads.edges.map((e, i) => ({ e, i })).filter(({ e }) => [node(4, 3), node(4, 4)].includes(e[0] as number) && [node(4, 3), node(4, 4)].includes(e[1] as number)).map(({ i }) => i);
+      expect(pocket).toHaveLength(2);
+      const closedAll = roads.edges.map((_, i) => i).filter((i) => !pocket.includes(i));
+      for (let seed = 1; seed < 40; seed++) {
+        const { runner } = collect();
+        runner.handle({ type: 'init', roads, population: 1, seed });
+        const sim = (runner as unknown as { sim: CarSim }).sim;
+        if (pocket.includes(sim.edge[0] as number)) continue; // this seed put the car in the pocket; the case needs it elsewhere
+        runner.handle(closed(closedAll));
+        runner.simulate(40); // long enough to reach the end of its road, find nothing open and back up to where it started
+        expect(sim.back[0]).toBe(1);
+        runner.simulate(400);
+        expect(runner.figures().relocated).toBeGreaterThanOrEqual(1);
+        expect(sim.back[0]).toBe(0);
+        expect(pocket).toContain(sim.edge[0]);
+        return;
+      }
+      throw new Error('no seed put the car outside the pocket');
+    });
     it('ignores roads that are not in the graph and a set that has not changed', () => {
       const { runner, messages } = collect();
       runner.handle(init(gridRoads(), 40));

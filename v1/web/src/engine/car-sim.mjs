@@ -630,8 +630,11 @@ export class CarSim {
   // closure it keeps backing up along a road into that junction.
   driveBack(i, dt) {
     const { edge, pos, v } = this;
-    v[i] = Math.min(REVERSE_SPEED, this.speed[edge[i]]); pos[i] -= v[i] * dt; this.wait[i] = 0;
-    if (pos[i] > 0) return;
+    v[i] = Math.min(REVERSE_SPEED, this.speed[edge[i]]); pos[i] -= v[i] * dt;
+    if (pos[i] > 0) { this.wait[i] = 0; return; }
+    // Backed up to the start of the road. From here it only waits (for room to pull in, or for a road to reopen), and the time it has waited
+    // counts, so a car with nowhere to go is moved by the gridlock relief like any other stuck car, not left on a closed road all day.
+    this.wait[i] += dt;
     const node = this.from[edge[i]];
     let open = false;
     for (let k = this.outStart[node]; k < this.outStart[node + 1] && !open; k++) open = !this.dead[this.out[k]];

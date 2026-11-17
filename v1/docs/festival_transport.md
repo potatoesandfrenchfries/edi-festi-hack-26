@@ -46,6 +46,14 @@ A separate switch in the Scenario tab (`web/src/destination-cars.ts`) makes a sh
 - On arrival (halfway along the last road) the car goes back to the engine's weighted random turns, and after a dwell of about five minutes (`DWELL_S`, an assumption) it picks its next venue. The share is therefore a share of drivers, not a share of trips.
 - **It does not respond to the council's levers** (bus frequency, park-and-ride, closures-as-lever), unlike the festival cars, and the festival cars still run next to it. It is left out of the scenario sweep (`scenario.ts` never turns it on), so the table of results is unchanged. With both on, venue traffic is counted twice on the live map and in the live impact figures; turn the festival-car switch off to see these cars alone.
 
+### Buses and closed streets (`web/src/bus-diversions.ts`)
+
+The buses follow the timetable's own paths, not the car roads, so a closed street would still carry them. While a street is closed, a bus path that **runs along** it (within 15 m and within 30 degrees of the street's line, for at least 30 m) is replaced by the quickest way round on open roads (the car engine's A*, with the closed roads blocked): the stops on the closed stretch are skipped and the bus is slowed by the extra distance at 5 m/s. A path that only **crosses** a closed street at a junction or on a bridge is left alone. The live map and the scenario sweep both do this, and a bus popup says when its path is diverted.
+
+- **It is an assumption.** The council's Summertime Streets page lists no bus exemption for the closed streets, and Lothian has diverted routes before (the 35 round Calton Hill), but no 2026 diversion notice was found. Edit `EXEMPT_ROUTES` to let a route through.
+- **On the Lothian timetable here, almost nothing diverts.** The routes that look close to a closed street (about 48 paths) are crossing it on the South Bridge and George IV Bridge, over the Cowgate. Only route 14 towards Greendykes runs along a closed stretch (the Cowgate, 238 m extra); 2 and N35 only clip its end. The Royal Mile, Cockburn Street and Johnston Terrace carry no bus path in the typical-day timetable, so closing them changes nothing for the buses.
+- **Left out of the costs.** The sweep prices bus kilometres from the timetable at each frequency, not the diverted one, so a diversion's extra kilometres are not charged.
+
 ## Testing configurations (`web/src/scenario.ts`)
 
 One run puts the evening (18:00 to midnight, including the Tattoo's 23:00 exit) through the engine with the buses and closures coupled in, and prices it:

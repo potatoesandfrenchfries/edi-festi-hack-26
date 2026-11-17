@@ -1,0 +1,18 @@
+# Observed traffic counts and how they are matched to the simulated road graph (pipeline/fetch_dft_counts.py, stage14_counts.py).
+# Every value carries an origin tag in its comment: placeholder, literature, calibrated or assumption.
+
+dft:
+  local_authority_id: 29            # literature: the DfT road traffic site's id for City of Edinburgh (its page redirects to ONS code S12000036)
+  first_year: 2015  # assumption: counts older than this are too stale to describe the roads now
+  excluded_years: [2020, 2021]  # assumption: pandemic years, traffic well below normal
+  counted_only: true  # assumption: DfT marks each figure Counted or Estimated; an Estimated one is a model's guess, not a count
+
+match:
+  max_metres: 25  # assumption: a count point further than this from a road of a compatible class is left unmatched
+  categories:  # assumption: DfT road_category -> the OpenStreetMap classes a count point of that category may match
+    TM: [motorway, motorway_link, trunk, trunk_link]  # assumption: trunk motorway
+    PM: [motorway, motorway_link]  # assumption: principal motorway
+    TA: [trunk, trunk_link, primary, primary_link]  # assumption: trunk A road
+    PA: [trunk, trunk_link, primary, primary_link, secondary, secondary_link]  # assumption: principal A road
+    MB: [primary, primary_link, secondary, secondary_link, tertiary, tertiary_link]  # assumption: minor road, classified (B)
+    MCU: [secondary, secondary_link, tertiary, tertiary_link, unclassified, residential, living_street]  # assumption: minor road, classified (C) or unclassified

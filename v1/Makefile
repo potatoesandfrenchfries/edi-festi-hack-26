@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: city help install install-py install-web install-browsers buses cars economics closures demand accommodation transport revenue fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
+.PHONY: city help install install-py install-web install-browsers buses cars counts economics closures demand accommodation transport revenue fetch footprints heights infill use-class census allocate tiles calibrate all m1 validate-heights \
         test test-py test-web test-e2e lint web-dev web-build web-deploy clean
 
 # AREA=full runs the whole council area (outputs go to data/*/full/); the default is the pilot.
@@ -23,9 +23,13 @@ install-browsers: ## Install the Chromium used by the browser smoke test
 buses: ## Lothian bus simulation data for the map (public timetables, ~290 MB download cached in ../lothian/data/raw/, no key needed)
 	cd .. && uv run python -m lothian.build --out v1/web/public/data/lothian.json
 
-cars: ## Road graph for the simulated cars: OSM roads from Overpass (cached), then web/public/data/roads.json
+cars: ## Road graph for the simulated cars: OSM roads from Overpass, then web/public/data/roads.json (AREA=full: zoned council-area graph, roads_full.json)
 	$(PY) pipeline.fetch_osm_roads
 	$(PY) pipeline.stage08_roads
+
+counts: ## DfT traffic counts for Edinburgh (cached), matched to the road graph(s): web/public/data/flows*.json and docs/traffic_counts.md
+	$(PY) pipeline.fetch_dft_counts
+	$(PY) pipeline.stage14_counts
 
 closures: ## Festival street closures for the map (the Fringe typical day, from ../closures) to web/public/data/closures.json
 	cd .. && uv run python -m closures.web --out v1/web/public/data/closures.json

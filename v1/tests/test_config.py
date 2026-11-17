@@ -22,6 +22,7 @@ TRAFFIC_IMPACT = {"economics.yaml"}  # design rule 6 exception: modelled road-co
         "use_weights.yaml",
         "profiles.yaml",
         "roads.yaml",
+        "flows.yaml",
         "economics.yaml",
         "demand.yaml",
         "accommodation.yaml",

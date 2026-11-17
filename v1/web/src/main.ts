@@ -410,7 +410,6 @@ function createApp(
   reducedMotion.addEventListener('change', () => timer !== null && setPlaying(true));
   colourScheme.addEventListener('change', schedule);
 
-  document.getElementById('profile-notice')!.hidden = false;
   // Buildings are drawn from zoom 13 (a whole city of extruded buildings would be too heavy), so say so when zoomed out.
   const zoomHint = document.getElementById('zoom-hint')!;
   function updateZoomHint() {

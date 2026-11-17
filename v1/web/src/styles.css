@@ -35,18 +35,16 @@ button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 
 /* Notices over the map */
-#banner, #profile-notice, #notice, #zoom-hint {
+#notice, #zoom-hint {
   position: absolute; z-index: 2; left: 50%; transform: translateX(-50%);
   max-width: calc(100vw - 32px); margin: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
 }
-#banner { top: 14px; width: max-content; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; }
-#profile-notice { top: 54px; width: max-content; padding: 6px 14px; border-radius: 14px; font-size: 11px; line-height: 1.5; color: var(--muted); text-align: center; }
 #notice { bottom: 40px; padding: 10px 16px; border-radius: 14px; font-size: 13px; }
-#zoom-hint { top: 96px; width: max-content; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+#zoom-hint { top: 14px; width: max-content; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; }
 
 /* On a wide screen the notices are centred in the map area to the right of the panel, so the panel never covers them. */
 @media (min-width: 761px) {
-  #banner, #profile-notice, #notice, #zoom-hint { left: calc(414px + (100vw - 414px) / 2); max-width: calc(100vw - 414px - 24px); }
+  #notice, #zoom-hint { left: calc(414px + (100vw - 414px) / 2); max-width: calc(100vw - 414px - 24px); }
 }
 
 /* Key to the building colours, bottom left of the map area (above the bottom sheet on a phone). */
@@ -218,8 +216,6 @@ input[type='range'] { flex: 1; width: 100%; min-height: 26px; accent-color: var(
   .panel-tabs { margin: 0 16px 4px; }
   .control-section { padding: 16px 17px 18px; }
   .section-heading h2 { font-size: 20px; }
-  #banner { font-size: 12px; padding: 7px 14px; }
-  #profile-notice { top: 48px; width: calc(100vw - 24px); font-size: 10px; }
   #legend { left: 12px; bottom: calc(var(--panel-h, 0px) + 22px); }
   .maplibregl-ctrl-bottom-right { bottom: calc(var(--panel-h, 0px) + 22px); }
 }

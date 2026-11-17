@@ -183,3 +183,101 @@ describe('cell transmission model', () => {
     expect(model.edgeSpeed(0)).toBeCloseTo(13, 6);
   });
 });
+
+// --- routed mode: vehicles with destinations ---------------------------------------------------------------------------------
+
+/** A directed network from [from, to, metres] roads (one lane, primary), nodes placed on a line so every edge has valid geometry. */
+function network(spec: [number, number, number][], nodes: number): Roads {
+  const at = (n: number): [number, number] => [-3.19 + n * STEP, 55.95 + (n % 2) * STEP];
+  const edges = spec.map(([a, b, metres], i) => [a, b, 0, 1, 13.4, 0, 0, metres, [...at(a), ...at(b)], i + 1, 0]);
+  return { bbox: [-3.2, 55.94, -3.17, 55.97], classes: ['primary'], nodes, names: [''], signals: [], edges };
+}
+// Two ways from node 0 to node 3: short (0-1-3, 400 m) and long (0-2-3, 800 m). Edges 0..3 in that order. Node 3 has a way back to 0 to keep it connected.
+const DIAMOND: [number, number, number][] = [[0, 1, 200], [1, 3, 200], [0, 2, 400], [2, 3, 400], [3, 0, 400]];
+
+describe('cell transmission model with destinations', () => {
+  it('conserves vehicles: entered = left + on the road, for every commodity', () => {
+    const model = new CellModel(network(DIAMOND, 4));
+    model.setDestinations([3, 1]);
+    model.setSource(0, 400, 0); // from node 0, bound for node 3
+    model.setSource(0, 200, 1); // bound for node 1
+    for (let k = 0; k < 30; k++) {
+      model.advance(20);
+      expect(model.entered - model.exited - model.mass()).toBeCloseTo(0, 6);
+    }
+    expect(model.exitedBy[0]!).toBeGreaterThan(50);
+    expect(model.exitedBy[1]!).toBeGreaterThan(20);
+  });
+
+  it('sends vehicles by the quicker way, and a vehicle leaves only at its own destination', () => {
+    const model = new CellModel(network(DIAMOND, 4));
+    model.setDestinations([3, 1]);
+    model.setSource(0, 300, 0); // bound for node 3, through node 1
+    model.advance(600);
+    // The short way (edges 0, 1) carries nearly all of it; none left at node 1 although it passed through.
+    const short = model.vehiclesFor(0, 0) + model.vehiclesFor(1, 0), long = model.vehiclesFor(2, 0) + model.vehiclesFor(3, 0);
+    expect(short).toBeGreaterThan(long * 20);
+    expect(model.exitedBy[1]!).toBe(0);
+    expect(model.exitedBy[0]!).toBeGreaterThan(30);
+  });
+
+  it('splits evenly between two equally quick ways', () => {
+    const model = new CellModel(network([[0, 1, 300], [1, 3, 300], [0, 2, 300], [2, 3, 300], [3, 0, 300]], 4));
+    model.setDestinations([3]);
+    model.setSource(4, 300); // enters upstream of the choice at node 0
+    model.advance(900);
+    const a = model.vehicles(0) + model.vehicles(1), b = model.vehicles(2) + model.vehicles(3);
+    expect(a / (a + b)).toBeGreaterThan(0.4);
+    expect(a / (a + b)).toBeLessThan(0.6);
+  });
+
+  it('a closure reroutes the flow and it still arrives', () => {
+    const model = new CellModel(network(DIAMOND, 4));
+    model.setDestinations([3]);
+    model.setSource(4, 300); // enters upstream of the choice at node 0
+    model.advance(300);
+    model.setClosed([1], true); // the short way's second road
+    model.advance(900);
+    expect(model.vehicles(1)).toBeLessThan(0.01); // it drained
+    expect(model.vehicles(2) + model.vehicles(3)).toBeGreaterThan(0); // the long way is in use
+    const before = model.exitedBy[0]!;
+    model.advance(300);
+    expect(model.exitedBy[0]! - before).toBeGreaterThan(20); // and vehicles still arrive
+    expect(model.entered - model.exited - model.mass()).toBeCloseTo(0, 6);
+  });
+
+  it('vehicles with no way to their destination wait, and stay where they are', () => {
+    const model = new CellModel(network(DIAMOND, 4));
+    model.setDestinations([3]);
+    model.setClosed([1, 3], true); // both ways into node 3 are cut
+    model.setSource(0, 300);
+    model.advance(600);
+    expect(model.exitedBy[0]!).toBe(0);
+    expect(model.stats().waiting + model.mass()).toBeGreaterThan(40);
+  });
+
+  it('a lane drop on the way caps the arrivals at the narrow road capacity', () => {
+    const roads = network([[0, 1, 300], [1, 2, 300], [2, 0, 300]], 3);
+    (roads.edges[0] as number[])[3] = 2; // two lanes into a one-lane road
+    const model = new CellModel(roads);
+    model.setDestinations([2]);
+    model.setSource(0, 2200);
+    model.advance(600);
+    const before = model.exitedBy[0]!;
+    model.advance(300);
+    const rate = ((model.exitedBy[0]! - before) / 300) * HOUR;
+    expect(rate).toBeGreaterThan(1200 * 0.93);
+    expect(rate).toBeLessThan(1200 * 1.07);
+  });
+
+  it('on a grid, every commodity gets to its own node and nowhere else', () => {
+    const roads = gridRoads(5);
+    const model = new CellModel(roads);
+    model.setDestinations([24, 0, 12]);
+    for (let k = 0; k < 3; k++) model.setSource(2 * (k + 1), 200, k); // an arbitrary road for each
+    model.advance(1800);
+    for (let k = 0; k < 3; k++) expect(model.exitedBy[k]!).toBeGreaterThan(20);
+    expect(model.entered - model.exited - model.mass()).toBeCloseTo(0, 6);
+    for (let c = 0; c < model.cells; c++) expect(model.n[c]!).toBeGreaterThanOrEqual(0);
+  });
+});

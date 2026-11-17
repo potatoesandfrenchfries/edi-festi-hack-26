@@ -47,7 +47,22 @@ export class CellModel {
   /** True when vehicles may leave the end of road `e` at time `t` (default now): green, or no signal. Amber counts as red. */
   green(e: number, t?: number): boolean;
   setClosed(edges: ArrayLike<number>, closed: boolean): void;
-  setSource(edge: number, perHour: number): void;
+  /** Vehicles per hour wanting in at the start of a road, bound for destination `k` (routed mode; `k` is 0 otherwise). */
+  setSource(edge: number, perHour: number, k?: number): void;
+  /**
+   * Routed mode: commodity k is heading for junction `nodes[k]` by the quickest way round closed roads. Empties the network and the sources.
+   * Vehicles enter at sources and leave at their destination.
+   */
+  setDestinations(nodes: ArrayLike<number>): void;
+  /** Number of destinations (0 when circulating). */
+  K: number;
+  /** Vehicles that have entered at sources and that have left, in total. */
+  entered: number;
+  exited: number;
+  /** Vehicles that have left at each destination. */
+  exitedBy: Float64Array;
+  /** Vehicles on road `e` heading for destination `k`. */
+  vehiclesFor(e: number, k: number): number;
   setSinks(nodes: ArrayLike<number>): void;
   /** Spreads `population` vehicles over the roads and resets the clock. */
   seed(population: number): void;

@@ -7,8 +7,10 @@
 //
 // What it keeps from the car engine, so the two can be compared: the graph, closures (setClosed), fixed-time signals (same 90 s cycle,
 // phases and seeded offsets), and the turn weights (road class x lanes, U-turns a last resort).
-// What it cannot do: follow a vehicle, give a vehicle a destination or a route (traffic splits at junctions by fixed ratios), or draw a
-// car. A festival trip to a given venue needs origin-destination routing on top of this; see docs/ctm_experiment.md.
+// Two modes. Without destinations (the default) vehicles circulate and split at junctions by fixed turn weights. With destinations
+// (setDestinations) every vehicle belongs to a commodity, the node it is heading for: it splits at each junction by the shortest way to
+// that node (a multi-commodity CTM), enters at sources and leaves at its destination. That is the mode a festival trip needs.
+// What it cannot do: follow one vehicle, or draw a car; vehicles here are a continuous quantity.
 //
 // ESTIMATE: the capacities are placeholders (docs/city_wide_traffic_plan.md section 3.3 lists them as "verify").
 import { CYCLE, mulberry32 } from './car-sim.mjs';
@@ -24,6 +26,8 @@ const DEFAULT_CAPACITY = 700;
 const SIGNAL_SATURATION = 1800; // literature (plan section 3.3, "verify"): vehicles per hour of green per lane on a signalised approach
 const JAM_DENSITY = 1 / 7.5; // vehicles per metre per lane: the car engine's slot (4.5 m car + 2 m gap + 1 m) so both fill a lane alike
 const HOUR = 3600;
+const ROUTE_SPREAD_S = 30; // placeholder: a way on that is this much slower than the best still takes 1/e of the share (a logit choice)
+const U_TURN_S = 90; // placeholder: extra seconds a U-turn costs when choosing a way to a destination
 
 const baseClass = name => name.replace(/_link$/, '');
 
@@ -37,6 +41,7 @@ export class CellModel {
   constructor(roads, { population = 0, dt = 2, seed = 1 } = {}) {
     const edges = roads.edges, E = edges.length, nodes = roads.nodes;
     this.E = E; this.nodes = nodes; this.dt = dt; this.time = 0;
+    this.K = 0; // destinations (commodities); 0 is the circulating mode, see setDestinations
     this.from = Int32Array.from(edges, e => e[0]); this.to = Int32Array.from(edges, e => e[1]);
     this.lanes = Uint8Array.from(edges, e => Math.max(1, e[3]));
     this.speed = Float32Array.from(edges, e => e[4]); // free-flow speed, the posted limit
@@ -148,10 +153,94 @@ export class CellModel {
   setClosed(edges, closed) {
     for (const e of edges) this.closed[e] = closed ? 1 : 0;
     this.buildTurns();
+    if (this.K) this.buildRoutes();
   }
 
-  /** Vehicles `perHour` want to enter at the start of road `e`; they wait outside (`sourceQueue`) when it has no room. */
-  setSource(e, perHour) { this.sourceRate[e] = perHour / HOUR; }
+  /** Vehicles `perHour` want to enter at the start of road `e`, bound for destination `k` (routed mode); they wait outside when it has no room. */
+  setSource(e, perHour, k = 0) { this.sourceRate[e * Math.max(1, this.K) + k] = perHour / HOUR; }
+
+  /**
+   * Switches to routed mode: vehicle commodity k is heading for junction `nodes[k]`. Empties the network and the sources. Routes are the
+   * quickest way at free-flow speed round closed roads (a logit mix of near-equal ways), and are re-made when closures change.
+   */
+  setDestinations(nodes) {
+    const K = this.K = nodes.length, C = this.cells;
+    this.destNode = Int32Array.from(nodes);
+    this.destsAt = new Map();
+    nodes.forEach((node, k) => this.destsAt.set(node, [...(this.destsAt.get(node) ?? []), k]));
+    this.nk = new Float64Array(C * K); this.dk = new Float64Array(C * K); // vehicles of each commodity in each cell, and this step's change
+    this.sourceRate = new Float64Array(this.E * K); this.sourceQueue = new Float64Array(this.E * K);
+    this.exitedBy = new Float64Array(K);
+    this.routeShare = new Float64Array(this.betaStart[this.E] * K); // (betaStart[e] + j) * K + k: share of commodity k from road e into its j-th way on
+    this.reaches = new Uint8Array(this.E * K); // 1 if a vehicle of commodity k on road e can get anywhere (or is at its destination)
+    let widest = 1, deepest = 1;
+    for (let n = 0; n < this.nodes; n++) { widest = Math.max(widest, this.outStart[n + 1] - this.outStart[n]); deepest = Math.max(deepest, this.inStart[n + 1] - this.inStart[n]); }
+    this.mix = new Float64Array(deepest * K); this.mixShare = new Float64Array(deepest * widest); this.mixSend = new Float64Array(deepest); this.mixExit = new Float64Array(deepest);
+    this.n.fill(0); this.exited = 0; this.entered = 0; this.time = 0;
+    this.buildRoutes();
+  }
+
+  // Quickest time from every junction to node `target`, over roads that are not closed (a reverse Dijkstra with a binary heap).
+  timesTo(target) {
+    const dist = new Float64Array(this.nodes).fill(Infinity), heapKey = [], heapNode = [];
+    const push = (key, node) => {
+      let i = heapKey.length; heapKey.push(key); heapNode.push(node);
+      while (i > 0) { const up = (i - 1) >> 1; if (heapKey[up] <= key) break; heapKey[i] = heapKey[up]; heapNode[i] = heapNode[up]; i = up; }
+      heapKey[i] = key; heapNode[i] = node;
+    };
+    const pop = () => {
+      const key = heapKey[0], node = heapNode[0], lastKey = heapKey.pop(), lastNode = heapNode.pop();
+      if (heapKey.length) {
+        let i = 0;
+        for (;;) {
+          let child = 2 * i + 1;
+          if (child >= heapKey.length) break;
+          if (child + 1 < heapKey.length && heapKey[child + 1] < heapKey[child]) child++;
+          if (heapKey[child] >= lastKey) break;
+          heapKey[i] = heapKey[child]; heapNode[i] = heapNode[child]; i = child;
+        }
+        heapKey[i] = lastKey; heapNode[i] = lastNode;
+      }
+      return [key, node];
+    };
+    dist[target] = 0; push(0, target);
+    while (heapKey.length) {
+      const [d, node] = pop();
+      if (d > dist[node]) continue;
+      for (let i = this.inStart[node]; i < this.inStart[node + 1]; i++) {
+        const e = this.inEdges[i];
+        if (this.closed[e]) continue;
+        const nd = d + this.length[e] / this.speed[e];
+        if (nd < dist[this.from[e]]) { dist[this.from[e]] = nd; push(nd, this.from[e]); }
+      }
+    }
+    return dist;
+  }
+
+  // Per commodity and road, the share taken into each way on: a logit over (this way's time + the time on from there), U-turns dearer.
+  buildRoutes() {
+    const K = this.K;
+    this.routeShare.fill(0); this.reaches.fill(0);
+    for (let k = 0; k < K; k++) {
+      const dist = this.timesTo(this.destNode[k]);
+      for (let e = 0; e < this.E; e++) {
+        const node = this.to[e], base = this.betaStart[e];
+        if (node === this.destNode[k]) { this.reaches[e * K + k] = 1; continue; }
+        let best = Infinity;
+        const time = [];
+        for (let o = this.outStart[node], j = 0; o < this.outStart[node + 1]; o++, j++) {
+          const c = this.out[o];
+          const t = this.closed[c] ? Infinity : this.length[c] / this.speed[c] + dist[this.to[c]] + (this.to[c] === this.from[e] ? U_TURN_S : 0);
+          time.push(t); if (t < best) best = t;
+        }
+        if (best === Infinity) continue;
+        let total = 0;
+        for (let j = 0; j < time.length; j++) { const w = Math.exp(-(time[j] - best) / ROUTE_SPREAD_S); this.routeShare[(base + j) * K + k] = w; total += w; }
+        for (let j = 0; j < time.length; j++) this.routeShare[(base + j) * K + k] /= total;
+        this.reaches[e * K + k] = 1;
+      }
+    }
+  }
 
   /** Vehicles reaching these nodes leave the network (up to what the road can pass). */
   setSinks(nodes) { this.sink.fill(0); for (const n of nodes) this.sink[n] = 1; }
@@ -159,6 +248,7 @@ export class CellModel {
   // Spreads `population` vehicles over the roads by class x lanes x length (the car engine's seeding weights), evenly along each road.
   seed(population) {
     this.n.fill(0); this.sourceQueue.fill(0); this.exited = 0; this.entered = 0; this.time = 0;
+    if (this.K) { this.nk.fill(0); this.exitedBy.fill(0); return; } // routed mode starts empty: vehicles come in at sources
     if (!population) return;
     let total = 0;
     const w = new Float64Array(this.E);
@@ -177,9 +267,9 @@ export class CellModel {
   /** Advances by `seconds`, in whole steps of `dt` (the remainder is dropped). */
   advance(seconds) { for (let k = Math.floor(seconds / this.dt + 1e-9); k > 0; k--) this.step(); }
 
-  step() {
-    const { E, dt, cellStart, n, cap, room, sendBuf: send, recvBuf: recv, inBuf: inflow, outBuf: outflow } = this;
-    inflow.fill(0); outflow.fill(0);
+  // Per cell: what it can send this step and what it can take.
+  limits() {
+    const { E, cellStart, n, cap, room, sendBuf: send, recvBuf: recv } = this;
     for (let e = 0; e < E; e++) {
       const delta = this.waveRatio[e];
       for (let c = cellStart[e]; c < cellStart[e + 1]; c++) {
@@ -187,6 +277,13 @@ export class CellModel {
         recv[c] = Math.min(cap[c], delta * Math.max(0, room[c] - n[c]));
       }
     }
+  }
+
+  step() {
+    if (this.K) return this.stepRouted();
+    const { E, dt, cellStart, n, sendBuf: send, recvBuf: recv, inBuf: inflow, outBuf: outflow } = this;
+    inflow.fill(0); outflow.fill(0);
+    this.limits();
     // Within a road: a cell passes what it can send and the next cell can take.
     for (let e = 0; e < E; e++) {
       for (let c = cellStart[e]; c < cellStart[e + 1] - 1; c++) {
@@ -253,6 +350,97 @@ export class CellModel {
     this.time += dt;
   }
 
+
+  // One step in routed mode: the same limits and junction rules as `step`, but each vehicle follows the shares for its own destination.
+  stepRouted() {
+    const { E, K, dt, cellStart, n, nk, dk, sendBuf: send, recvBuf: recv, inBuf: inflow } = this;
+    this.limits();
+    inflow.fill(0); dk.fill(0);
+    for (let e = 0; e < E; e++) { // within a road, every commodity moves on in proportion to its share of the cell
+      for (let c = cellStart[e]; c < cellStart[e + 1] - 1; c++) {
+        const y = Math.min(send[c], recv[c + 1]);
+        if (y <= 0 || n[c] <= 0) continue;
+        const f = y / n[c], a = c * K, b = (c + 1) * K;
+        for (let k = 0; k < K; k++) { const m = nk[a + k] * f; dk[a + k] -= m; dk[b + k] += m; }
+        inflow[c + 1] += y;
+      }
+    }
+    for (let node = 0; node < this.nodes; node++) {
+      const i0 = this.inStart[node], i1 = this.inStart[node + 1], o0 = this.outStart[node], o1 = this.outStart[node + 1];
+      if (i0 === i1) continue;
+      const width = o1 - o0, here = this.destsAt.get(node);
+      let any = false;
+      for (let j = 0; j < width; j++) this.demand[j] = 0;
+      // Pass 1: for each incoming road that may go, the vehicles that can move (at their destination, or with a way on), their shares
+      // by commodity, and so the demand each way on would get.
+      for (let i = i0; i < i1; i++) {
+        const e = this.inEdges[i], slot = i - i0, last = cellStart[e + 1] - 1;
+        this.mixSend[slot] = 0;
+        if (!this.green(e) || n[last] <= 0) continue;
+        let movable = 0;
+        for (let k = 0; k < K; k++) if (this.reaches[e * K + k]) movable += nk[last * K + k];
+        const s = Math.min(send[last], movable);
+        if (s <= 1e-12) continue;
+        this.mixSend[slot] = s; any = true;
+        for (let j = 0; j < width; j++) this.mixShare[slot * width + j] = 0;
+        let exit = 0;
+        for (let k = 0; k < K; k++) {
+          const g = this.reaches[e * K + k] ? nk[last * K + k] / movable : 0;
+          this.mix[slot * K + k] = g;
+          if (g > 0 && here && here.includes(k)) { exit += g; continue; }
+          if (g > 0) for (let j = 0; j < width; j++) this.mixShare[slot * width + j] += g * this.routeShare[(this.betaStart[e] + j) * K + k];
+        }
+        this.mixExit[slot] = exit;
+        for (let j = 0; j < width; j++) this.demand[j] += s * this.mixShare[slot * width + j];
+      }
+      if (!any) continue;
+      for (let j = 0; j < width; j++) {
+        const c = this.out[o0 + j], accept = this.closed[c] ? 0 : recv[cellStart[c]];
+        this.scale[j] = this.demand[j] > accept ? accept / this.demand[j] : 1;
+      }
+      // Pass 2: a road held back on one way on is held back on all (first in, first out); move what is allowed.
+      for (let i = i0; i < i1; i++) {
+        const e = this.inEdges[i], slot = i - i0, s = this.mixSend[slot];
+        if (s <= 0) continue;
+        let r = 1;
+        for (let j = 0; j < width; j++) if (this.mixShare[slot * width + j] > 1e-9) r = Math.min(r, this.scale[j]);
+        if (r <= 0) continue;
+        const last = cellStart[e + 1] - 1;
+        for (let k = 0; k < K; k++) {
+          const g = this.mix[slot * K + k];
+          if (g <= 0) continue;
+          const moved = r * s * g;
+          dk[last * K + k] -= moved;
+          if (here && here.includes(k)) { this.exitedBy[k] += moved; this.exited += moved; continue; }
+          for (let j = 0; j < width; j++) {
+            const share = this.routeShare[(this.betaStart[e] + j) * K + k];
+            if (share > 0) { const first = cellStart[this.out[o0 + j]]; dk[first * K + k] += moved * share; inflow[first] += moved * share; }
+          }
+        }
+      }
+    }
+    // Sources: what waits outside enters a road's first cell with the room the junction flows left, shared out by queue length.
+    for (let e = 0; e < E; e++) {
+      let queued = 0;
+      for (let k = 0; k < K; k++) { this.sourceQueue[e * K + k] += this.sourceRate[e * K + k] * dt; queued += this.sourceQueue[e * K + k]; }
+      if (queued <= 0) continue;
+      const first = cellStart[e], y = this.closed[e] ? 0 : Math.min(queued, Math.max(0, recv[first] - inflow[first]));
+      if (y <= 0) continue;
+      const f = y / queued;
+      for (let k = 0; k < K; k++) { const m = this.sourceQueue[e * K + k] * f; dk[first * K + k] += m; this.sourceQueue[e * K + k] -= m; }
+      inflow[first] += y; this.entered += y;
+    }
+    for (let c = 0; c < this.cells; c++) {
+      let total = 0;
+      for (let k = 0; k < K; k++) { const v = Math.max(0, nk[c * K + k] + dk[c * K + k]); nk[c * K + k] = v; total += v; }
+      n[c] = total;
+    }
+    this.time += dt;
+  }
+
+  /** Vehicles on road `e` heading for destination `k` (routed mode). */
+  vehiclesFor(e, k) { let s = 0; for (let c = this.cellStart[e]; c < this.cellStart[e + 1]; c++) s += this.nk[c * this.K + k]; return s; }
+
   /** Vehicles on road `e`. */
   vehicles(e) { let s = 0; for (let c = this.cellStart[e]; c < this.cellStart[e + 1]; c++) s += this.n[c]; return s; }
 
@@ -286,8 +474,8 @@ export class CellModel {
         const v = this.n[c]; count += v; weighted += v * this.cellSpeed(e, v);
         if (v > limit) congested += v;
       }
-      queued += this.sourceQueue[e];
     }
+    for (let i = 0; i < this.sourceQueue.length; i++) queued += this.sourceQueue[i];
     return { vehicles: count, averageSpeedMps: count > 1e-9 ? weighted / count : 0, congestedShare: count > 1e-9 ? congested / count : 0, waiting: queued, exited: this.exited, entered: this.entered };
   }
 

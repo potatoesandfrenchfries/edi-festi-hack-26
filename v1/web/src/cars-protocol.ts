@@ -87,6 +87,8 @@ export interface ReadyMessage {
   venuesPlaced?: boolean[];
   /** Where each signalised approach's stop line is ([longitude, latitude, ...], fixed for the run); the frames carry their states. */
   signalPositions?: Float64Array;
+  /** The bearing each of those approaches' traffic travels in, in degrees clockwise from north, in the same order (for the head to face it). */
+  signalBearings?: Float32Array;
 }
 /** `data` holds FLOATS_PER_CAR numbers per car: longitude, latitude, bearing (degrees), speed (m/s), personality index. */
 export interface FrameMessage {

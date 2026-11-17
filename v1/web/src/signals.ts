@@ -1,4 +1,5 @@
-// Traffic signals on the map: a dot at each signalised approach's stop line, coloured by its state in the car engine. The engine runs a fixed
+// Traffic signals on the map as dots: one at each signalised approach's stop line, coloured by its state in the car engine. The 3D signals
+// (signal3d.ts) are the normal view; these dots are drawn only if those cannot start, and they also hold the data the map keeps across a style reload. The engine runs a fixed
 // 90-second cycle with two alternating phases at every OpenStreetMap signal, so the colours are a MODELLED cycle, not real timings. Drawn
 // under the cars, from a zoom where a junction is big enough to read. The positions are fixed for the run (the worker sends them once);
 // the states arrive with every car frame and are pushed to the map only when they change.
@@ -41,6 +42,8 @@ export class SignalLayer {
   /** The states the map was last given, so an unchanged frame costs nothing. */
   private shown: Uint8Array | null = null;
   private visible = true;
+  /** The dots are the fallback: drawn only if the 3D signals (signal3d.ts) cannot start. */
+  private dotsShown = false;
   private lastPush = -Infinity;
 
   /** Adds the source and layer to the map's current style, with the latest signals drawn at once. Call on every 'style.load', before the cars. */
@@ -55,7 +58,7 @@ export class SignalLayer {
       type: 'circle',
       source: SIGNALS_SOURCE,
       minzoom: SIGNALS_MIN_ZOOM,
-      layout: { visibility: this.visible ? 'visible' : 'none' },
+      layout: { visibility: this.dotVisibility() },
       paint: {
         'circle-color': ['match', ['get', 's'], SIGNAL_RED, c.red, SIGNAL_AMBER, c.amber, c.green] as unknown as maplibregl.ExpressionSpecification,
         'circle-radius': ['interpolate', ['linear'], ['zoom'], SIGNALS_MIN_ZOOM, size(2.8, 2.4, 2), 16, size(4.6, 4, 3.4), 18, size(7.5, 6.5, 5.5)],
@@ -84,7 +87,20 @@ export class SignalLayer {
 
   setVisible(visible: boolean): void {
     this.visible = visible;
-    if (this.map?.getLayer(SIGNALS_LAYER)) this.map.setLayoutProperty(SIGNALS_LAYER, 'visibility', visible ? 'visible' : 'none');
+    this.applyVisibility();
+  }
+
+  /** Draws the dots (true), because the 3D signals could not start, or hides them (false). They start hidden. */
+  showDots(on: boolean): void {
+    this.dotsShown = on;
+    this.applyVisibility();
+  }
+
+  private dotVisibility(): 'visible' | 'none' {
+    return this.visible && this.dotsShown ? 'visible' : 'none';
+  }
+  private applyVisibility(): void {
+    if (this.map?.getLayer(SIGNALS_LAYER)) this.map.setLayoutProperty(SIGNALS_LAYER, 'visibility', this.dotVisibility());
   }
 
   private push(force: boolean): void {

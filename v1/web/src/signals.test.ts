@@ -84,18 +84,28 @@ describe('SignalLayer', () => {
     expect(calls.data[2]!.features.map((f) => f.properties.s)).toEqual([SIGNAL_AMBER, SIGNAL_GREEN]);
   });
 
-  it('shows and hides with the cars, and draws again after a style reload', () => {
-    clock();
+  it('keeps the dots hidden while the 3D signals work, and draws them if those cannot start', () => {
     const { map, calls } = fakeMap();
+    const layer = new SignalLayer();
+    layer.install(map, false);
+    expect(calls.layers[0]).toMatchObject({ layout: { visibility: 'none' } });
+    layer.showDots(true); // the 3D signals could not be set up
+    layer.setVisible(false); // the cars switch is off
+    layer.setVisible(true);
+    layer.showDots(false);
+    expect(calls.visibility).toEqual(['visible', 'none', 'visible', 'none']);
+  });
+
+  it('draws again after a style reload, in the visibility it had', () => {
+    clock();
+    const { map } = fakeMap();
     const layer = new SignalLayer();
     layer.install(map, false);
     layer.setPositions(Float64Array.of(-3.19, 55.95));
     layer.setStates(Uint8Array.of(2));
+    layer.showDots(true);
     layer.setVisible(false);
-    layer.setVisible(true);
-    expect(calls.visibility).toEqual(['none', 'visible']);
     const reloaded = fakeMap();
-    layer.setVisible(false);
     layer.install(reloaded.map, true);
     expect(reloaded.calls.layers[0]).toMatchObject({ layout: { visibility: 'none' } });
     expect(reloaded.calls.data).toHaveLength(1); // the last signals come straight back

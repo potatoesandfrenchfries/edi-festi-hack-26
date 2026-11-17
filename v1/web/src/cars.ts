@@ -4,6 +4,7 @@
 import * as maplibregl from 'maplibre-gl';
 import { Car3dLayer } from './car3d';
 import { SignalLayer } from './signals';
+import { Signal3dLayer } from './signal3d';
 import { FLOATS_PER_CAR, type CarStatsMessage, type FromWorker, type ToWorker } from './cars-protocol';
 import type { TripRates, TripVenue } from './trips';
 import type { Roads } from './engine/car-sim.mjs';
@@ -108,6 +109,8 @@ export class CarSimulation {
   private layer3d: Car3dLayer | null = null;
   /** The traffic signals under the cars, coloured by the engine's modelled cycle. */
   private readonly signals = new SignalLayer();
+  /** The 3D signals; the dots above are drawn only if these cannot start. */
+  private readonly signals3d = new Signal3dLayer(() => this.signals.showDots(true));
   /** True if the 3D models could not be set up: the dots are then drawn instead. */
   private dotsOnly = false;
 
@@ -123,6 +126,8 @@ export class CarSimulation {
     this.map = map;
     const colours = carColours(dark);
     this.signals.install(map, dark); // first, so the cars are drawn over the lights
+    this.signals3d.setDark(dark);
+    map.addLayer(this.signals3d);
     map.addSource(CARS_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
     map.addLayer({
       id: CARS_LAYER,
@@ -169,6 +174,7 @@ export class CarSimulation {
   setVisible(visible: boolean): void {
     this.visible = visible;
     this.signals.setVisible(visible);
+    this.signals3d.setVisible(visible);
     this.layer3d?.setVisible(visible);
     if (this.map?.getLayer(CARS_LAYER)) this.map.setLayoutProperty(CARS_LAYER, 'visibility', visible ? 'visible' : 'none');
     if (visible && this.armed) this.start();
@@ -246,8 +252,10 @@ export class CarSimulation {
   private receive(message: FromWorker): void {
     if (message.type === 'ready') {
       this.signals.setPositions(message.signalPositions);
+      this.signals3d.setSignals(message.signalPositions, message.signalBearings);
     } else if (message.type === 'frame') {
       this.signals.setStates(message.signals);
+      this.signals3d.setStates(message.signals);
       this.previous = this.current;
       this.previousAt = this.currentAt;
       this.current = message.data;

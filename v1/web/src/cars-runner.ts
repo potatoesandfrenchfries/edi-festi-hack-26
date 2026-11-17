@@ -20,6 +20,18 @@ const RELIEF_EVERY_STEPS = 25; // 5 simulated seconds
 const RELIEF_TRIES = 30;
 const ROOM_AT_START_M = 8; // free road needed behind a relocated car: car length 4.5 m, gap 2 m, plus 1 m
 
+/** The bearing (degrees clockwise from north) that traffic travels in as it reaches the end of each signalised approach, in approach order. */
+export function approachBearings(sim: CarSim): Float32Array {
+  const out = new Float32Array(sim.approaches.length);
+  sim.approaches.forEach((e, k) => {
+    const p = (sim.ptStart[e + 1] as number) - 2; // the last segment of the road, in the direction of travel
+    const east = ((sim.lon[p + 1] as number) - (sim.lon[p] as number)) * sim.mPerLon;
+    const north = ((sim.lat[p + 1] as number) - (sim.lat[p] as number)) * sim.mPerLat;
+    out[k] = (((Math.atan2(east, north) * 180) / Math.PI) + 360) % 360;
+  });
+  return out;
+}
+
 export class CarRunner {
   private sim: CarSim | null = null;
   private speed = 1;
@@ -86,7 +98,7 @@ export class CarRunner {
         this.relocated = this.sinceRelief = 0;
         this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
         this.target = this.sim.time;
-        this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed(), signalPositions: this.sim.approachPositions() });
+        this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed(), signalPositions: this.sim.approachPositions(), signalBearings: approachBearings(this.sim) });
       } else if (message.type === 'demand') {
         if (this.sim) this.applyDemand(this.sim, message.fraction);
       } else if (message.type === 'trips') {

@@ -20,6 +20,11 @@ Fetched on 2026-10-29 for the **pilot area** only (Old Town and New Town, `confi
 - Licence: Open Government Licence v3.0. Credit: DfT Bus Open Data Service.
 - No cost, price or fare fields are read.
 
+### BODS GTFS archive, snapshot of 10 June 2023 (examined, not used by the simulation)
+- URL: https://zenodo.org/records/14779119 (University of Glasgow Urban Big Data Centre, DOI 10.20394/dqmgka2s; one 19.5 GB zip, md5 `1c8352fc910e91490d0a814577f1f120`). Accessed 2026-11-17. Only one member was fetched, by HTTP range requests: `OBDS_archive/bod_2023-06-10_21.00.02_gtfs.zip` (489 MB compressed, 581 MB; CRC-32 checked, md5 of the extracted file `10b6381b64a36cb47eaeaf90562847ad`), kept in `../lothian/data/raw/archive_2023-06-10/` (gitignored).
+- Why: to see whether a past festival timetable shows the festival bus diversions. It does not: the Lothian trips carry no `shape_id` (no route paths), and its August 2023 dates have the same trip counts as June and July (4,583 on Saturdays), so diversions are not in the filed timetable. Nothing here is read by the pipeline or the web app.
+- Licence: the Zenodo record has no licence field; the underlying DfT Bus Open Data Service data is Open Government Licence v3.0. Verify before reusing.
+
 ### Overture Maps buildings and building parts
 - Script: `pipeline/fetch_overture.py`. Release pinned to `2026-10-21.0`, read from `s3://overturemaps-us-west-2/release/2026-10-21.0/theme=buildings/` with a bounding-box filter.
 - Docs: https://docs.overturemaps.org/guides/buildings

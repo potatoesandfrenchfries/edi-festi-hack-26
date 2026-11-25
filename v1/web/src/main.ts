@@ -81,7 +81,7 @@ async function main() {
   const busData = await loadBusData();
   const buses = busData ? new BusSimulation(busData, reducedMotion.matches ? 1000 : 33) : null;
   // Likewise optional: without `make cars` there are no cars and their switch says so.
-  const carData = await loadCarData();
+  const carData = await loadCarData(fetch, document.baseURI, new URLSearchParams(location.search).get('area') === 'pilot'); // ?area=pilot: the centre only
   const cars = carData ? new CarSimulation(carData, reducedMotion.matches ? 1000 : 100) : null;
   // Experimental (`?flow` in the address): the cell model's flow, drawn as tinted roads and moving dots, in place of the simulated cars.
   const flow = carData && new URLSearchParams(location.search).has('flow') ? new FlowSimulation(carData, { scale: 5 }) : null;

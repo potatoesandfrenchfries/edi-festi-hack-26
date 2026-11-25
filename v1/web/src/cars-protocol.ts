@@ -14,6 +14,8 @@ export interface InitMessage {
   /** Festival venues cars can be sent to, and how many extra car slots to keep for those trips. Without venues there are no trips. */
   venues?: TripVenue[];
   tripSlots?: number;
+  /** Cars to place in each zone of a zoned road graph (`roads.zones`), so the centre keeps its density and the outskirts stay thin. Without it, cars are placed by lane-kilometres everywhere. */
+  zoneCars?: number[];
 }
 /** `fraction` is the cars on the road as a multiple of the init population: the hour's share of the day times the demand slider. */
 export interface DemandMessage {

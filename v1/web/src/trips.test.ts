@@ -38,6 +38,16 @@ describe('road lookups', () => {
     const north = g.entry.north[0]!;
     expect(sim.nodeLat[sim.to[north]!]!).toBeLessThan(sim.nodeLat[sim.from[north]!]!); // heading south, into the area
   });
+  it('puts the gateways at the edge of the core and ring in a zoned graph, not at the edge of the outer zone', () => {
+    const row = (node: number) => Math.floor(node / SIDE);
+    const zones = roads.edges.map((e) => (row(e[0] as number) >= 5 || row(e[1] as number) >= 5 ? 2 : 0)); // the top two rows are the outer zone
+    const whole = gateways(sim, roads.classes);
+    const zoned = gateways(sim, roads.classes, zones);
+    const topRow = (list: number[]) => Math.max(...list.map((e) => row(sim.from[e] as number)));
+    expect(topRow(whole.entry.north)).toBe(SIDE - 1);
+    expect(topRow(zoned.entry.north)).toBeLessThan(5);
+    expect(zoned.entry.west.length).toBeGreaterThan(0);
+  });
   it('pickWeighted follows the weights and ignores negatives', () => {
     expect(pickWeighted({ a: 1, b: 3 }, 0.1)).toBe('a');
     expect(pickWeighted({ a: 1, b: 3 }, 0.5)).toBe('b');

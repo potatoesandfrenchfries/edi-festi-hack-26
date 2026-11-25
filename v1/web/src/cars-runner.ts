@@ -19,6 +19,10 @@ export const RELIEF_AFTER_S = 90;
 const RELIEF_EVERY_STEPS = 25; // 5 simulated seconds
 const RELIEF_TRIES = 30;
 const ROOM_AT_START_M = 8; // free road needed behind a relocated car: car length 4.5 m, gap 2 m, plus 1 m
+// Zone balance. Cars wander at random, so left alone they drift from the dense centre out along the main roads and the zones even out.
+// Every few seconds a zone over its share retires a few cars (they leave at their next junction) and a zone under it gets a few new ones.
+const REBALANCE_EVERY_STEPS = 25; // 5 simulated seconds
+const REBALANCE_SHARE = 0.01; // most cars moved in or out of one zone per round, as a share of the population
 
 /** The bearing (degrees clockwise from north) that traffic travels in as it reaches the end of each signalised approach, in approach order. */
 export function approachBearings(sim: CarSim): Float32Array {
@@ -30,6 +34,27 @@ export function approachBearings(sim: CarSim): Float32Array {
     out[k] = (((Math.atan2(east, north) * 180) / Math.PI) + 360) % 360;
   });
   return out;
+}
+
+/**
+ * Placement weights for a zoned road graph: each edge's usual weight (road class x lanes x length x lanes, as the engine seeds by default),
+ * scaled so the cars land in the zones in the proportions `zoneCars` gives. Null for a graph with no zones, which keeps the engine's default.
+ */
+export function zoneWeights(sim: CarSim, zones: readonly number[] | undefined, zoneCars: readonly number[] | undefined): Float64Array | null {
+  if (!zones || !zoneCars || zones.length !== sim.E) return null;
+  const base = new Float64Array(sim.E);
+  const sums = new Float64Array(zoneCars.length);
+  for (let e = 0; e < sim.E; e++) {
+    if (sim.laneCapacity(e) < 1 || sim.dead[e]) continue;
+    base[e] = (sim.popularity[e] as number) * (sim.length[e] as number) * (sim.lanes[e] as number);
+    sums[zones[e] as number] = (sums[zones[e] as number] ?? 0) + (base[e] as number);
+  }
+  const weights = new Float64Array(sim.E);
+  for (let e = 0; e < sim.E; e++) {
+    const zone = zones[e] as number;
+    if ((sums[zone] ?? 0) > 0) weights[e] = ((base[e] as number) * (zoneCars[zone] ?? 0)) / (sums[zone] as number);
+  }
+  return weights;
 }
 
 export class CarRunner {
@@ -48,6 +73,15 @@ export class CarRunner {
   private sinceRelief = 0;
   private random: () => number = Math.random;
   private cumulative: Float64Array = new Float64Array(0);
+  /** Where cars are placed in a zoned graph (see zoneWeights), or null to place them by lane length. Also used to place a car again after relief or a demand rise. */
+  private placement: Float64Array | null = null;
+  /** Zoned graphs only: each road's zone, the cars each zone holds at a demand of 1, and the placement weights of each zone alone. */
+  private zones: readonly number[] | null = null;
+  private zoneCars: number[] = [];
+  private zoneCumulative: Float64Array[] = [];
+  /** The cars on the road as a multiple of the population, as last asked for. */
+  private fraction = 1;
+  private sinceRebalance = 0;
   /** Cars on the road at a demand of 1 (the init population). */
   private population = 0;
   /** Car slots for the background traffic (up to the demand slider's top value); slots after these belong to the festival trips. */
@@ -85,21 +119,25 @@ export class CarRunner {
         const slots = Math.min(capacity, Math.max(this.population, Math.round(message.population * (message.maxDemand ?? 1))));
         const tripSlots = message.venues?.length ? Math.max(0, Math.min(message.tripSlots ?? 0, capacity - slots)) : 0;
         this.baselineSlots = slots;
-        this.sim.reseed({ population: slots + tripSlots });
+        this.placement = zoneWeights(this.sim, message.roads.zones, message.zoneCars);
+        this.sim.reseed({ population: slots + tripSlots, weights: this.placement ?? undefined });
+        this.setupZones(message.roads.zones, message.zoneCars);
         this.effects = new BusRoadEffects(this.sim);
         this.slowedByBuses = 0;
         this.closedNow = new Set();
         for (let i = this.population; i < this.sim.n; i++) this.sim.switchOff(i);
         this.random = mulberry32(message.seed + 1); // its own stream, so relief never changes where the engine places or turns cars
-        this.trips = message.venues?.length ? new TripFlow(this.sim, message.venues, message.roads.classes, slots, mulberry32(message.seed + 2)) : null;
+        this.trips = message.venues?.length ? new TripFlow(this.sim, message.venues, message.roads.classes, slots, mulberry32(message.seed + 2), this.placement && this.zones ? { weights: this.placement, zones: this.zones } : null) : null;
         this.destinations = message.venues?.length ? new DestinationCars(this.sim, message.venues, slots, message.seed, mulberry32(message.seed + 3)) : null;
         this.stepCount = 0;
         this.cumulative = this.cumulativeLaneMetres(this.sim);
-        this.relocated = this.sinceRelief = 0;
+        this.relocated = this.sinceRelief = this.sinceRebalance = 0;
+        this.fraction = 1;
         this.simAcc = this.delayAcc = this.idleAcc = this.distanceAcc = 0;
         this.target = this.sim.time;
         this.post({ type: 'ready', cars: this.population, capacity, venuesPlaced: this.trips?.placed(), signalPositions: this.sim.approachPositions(), signalBearings: approachBearings(this.sim) });
       } else if (message.type === 'demand') {
+        this.fraction = message.fraction;
         if (this.sim) this.applyDemand(this.sim, message.fraction);
       } else if (message.type === 'trips') {
         this.trips?.setRates(message.rates);
@@ -165,6 +203,10 @@ export class CarRunner {
       this.sinceRelief = 0;
       this.relieveGridlock(sim);
     }
+    if (this.zones && ++this.sinceRebalance >= REBALANCE_EVERY_STEPS) {
+      this.sinceRebalance = 0;
+      this.rebalanceZones(sim);
+    }
   }
 
   /** Runs `seconds` of simulated time at once, with no work budget and no frames: for tests and benchmarks. */
@@ -206,7 +248,7 @@ export class CarRunner {
   private cumulativeLaneMetres(sim: CarSim): Float64Array {
     const out = new Float64Array(sim.E);
     let total = 0;
-    for (let e = 0; e < sim.E; e++) out[e] = total += (sim.length[e] as number) * (sim.lanes[e] as number);
+    for (let e = 0; e < sim.E; e++) out[e] = total += this.placement ? (this.placement[e] as number) : (sim.length[e] as number) * (sim.lanes[e] as number);
     return out;
   }
 
@@ -260,7 +302,41 @@ export class CarRunner {
     }
   }
 
-  /** Moves every car that has been stopped for over RELIEF_AFTER_S to the start of a random road with room, weighted by lane length. */
+  private setupZones(zones: readonly number[] | undefined, zoneCars: readonly number[] | undefined): void {
+    this.zones = null;
+    this.zoneCumulative = [];
+    if (!this.placement || !zones || !zoneCars) return;
+    this.zones = zones;
+    this.zoneCars = [...zoneCars];
+    this.zoneCumulative = zoneCars.map((_, zone) => {
+      const out = new Float64Array(zones.length);
+      let total = 0;
+      for (let e = 0; e < zones.length; e++) out[e] = total += zones[e] === zone ? (this.placement as Float64Array)[e] as number : 0;
+      return out;
+    });
+  }
+
+  /** Keeps each zone of a zoned graph near its share of the cars: a few cars leave a zone that has too many and a few start in one that has too few. */
+  private rebalanceZones(sim: CarSim): void {
+    const zones = this.zones;
+    if (!zones) return;
+    const target = this.zoneCars.map((cars) => Math.round(cars * this.fraction));
+    const counts = this.zoneCars.map(() => 0);
+    for (let i = 0; i < this.baselineSlots; i++) if (sim.active[i] && !sim.leaving[i]) counts[zones[sim.edge[i] as number] as number]!++;
+    const allowance = Math.max(1, Math.ceil(this.population * REBALANCE_SHARE));
+    target.forEach((want, zone) => {
+      let retire = Math.min(counts[zone]! - want, allowance);
+      for (let i = this.baselineSlots - 1; i >= 0 && retire > 0; i--) {
+        if (!sim.active[i] || sim.leaving[i] || zones[sim.edge[i] as number] !== zone) continue;
+        sim.leaving[i] = 1;
+        retire--;
+      }
+      let start = Math.min(want - counts[zone]!, allowance);
+      for (let i = 0; i < this.baselineSlots && start > 0; i++) if (!sim.active[i] && this.placeCar(sim, i, this.zoneCumulative[zone])) start--;
+    });
+  }
+
+  /** Moves every car that has been stopped for over RELIEF_AFTER_S to the start of a random road with room, weighted by lane length (or by zone density in a zoned graph). */
   relieveGridlock(sim: CarSim): void {
     for (let car = 0; car < sim.n; car++) {
       if (!sim.active[car] || (sim.wait[car] as number) <= RELIEF_AFTER_S) continue;
@@ -272,15 +348,16 @@ export class CarRunner {
   }
 
   /** Puts car `car` (switched on if it was off) at the start of a random road with room, at rest. False if no road had room in a few tries. */
-  private placeCar(sim: CarSim, car: number): boolean {
-    const total = this.cumulative[this.cumulative.length - 1] ?? 0;
+  private placeCar(sim: CarSim, car: number, cumulative: Float64Array = this.cumulative): boolean {
+    const total = cumulative[cumulative.length - 1] ?? 0;
+    if (total <= 0) return false;
     for (let attempt = 0; attempt < RELIEF_TRIES; attempt++) {
       const r = this.random() * total;
       let lo = 0;
       let hi = sim.E - 1;
       while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if ((this.cumulative[mid] as number) < r) lo = mid + 1;
+        if ((cumulative[mid] as number) < r) lo = mid + 1;
         else hi = mid;
       }
       const lane = Math.floor(this.random() * (sim.lanes[lo] as number));

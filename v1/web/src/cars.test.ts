@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CarRunner, STEP_SECONDS } from './cars-runner';
+import { CarRunner, STEP_SECONDS, zoneWeights } from './cars-runner';
 import { FLOATS_PER_CAR, type FromWorker, type ToWorker } from './cars-protocol';
 import { CarSimulation, MAX_CAR_SPEED, carColours, carFeatures, lerpFrame, loadCarData, type CarData, type CarWorker } from './cars';
 import { gridRoads } from './grid-roads.testutil';
@@ -48,6 +48,86 @@ describe('loadCarData', () => {
     expect(await loadCarData(respond(null, false), 'http://localhost/')).toBeNull();
     expect(await loadCarData(respond({ edges: [], nodes: 0 }), 'http://localhost/')).toBeNull();
     expect(await loadCarData((async () => { throw new Error('offline'); }) as typeof fetch, 'http://localhost/')).toBeNull();
+  });
+});
+
+describe('loadCarData with a council-area graph', () => {
+  const city = { ...gridRoads(), sim: { area: 'full', capacity: 1000, population: 10, seed: 1, zoneCars: [8, 2] } };
+  const serve = (files: Record<string, unknown>): typeof fetch =>
+    (async (url: URL) => {
+      const name = new URL(String(url)).pathname.replace(/^\//, '');
+      return name in files ? { ok: true, json: async () => files[name] } : { ok: false, json: async () => null };
+    }) as unknown as typeof fetch;
+
+  it('prefers the council-area graph, falls back to the pilot, and can be told to use only the pilot', async () => {
+    const both = serve({ 'data/roads_full.json': city, 'data/roads.json': gridRoads(3) });
+    expect(await loadCarData(both, 'http://localhost/')).toMatchObject({ nodes: 25 });
+    expect(await loadCarData(both, 'http://localhost/', true)).toMatchObject({ nodes: 9 });
+    expect(await loadCarData(serve({ 'data/roads.json': gridRoads(3) }), 'http://localhost/')).toMatchObject({ nodes: 9 });
+    expect(await loadCarData(serve({}), 'http://localhost/')).toBeNull();
+  });
+});
+
+describe('zoned placement', () => {
+  // The grid's left half is zone 0 (the dense core), the right half zone 1; the right half has far more road to swallow the cars if weights were by length.
+  const zoned = (): CarData => {
+    const roads = gridRoads(9);
+    return { ...roads, zones: roads.edges.map((e) => (((e[8] as number[])[0] as number) < -3.19 + 4 * 0.002 ? 0 : 1)) } as CarData;
+  };
+  const zonesOf = (sim: CarSim, zones: number[], cars: number[]) => {
+    const counts = [0, 0];
+    for (const car of cars) counts[zones[sim.edge[car] as number] as number]!++;
+    return counts;
+  };
+
+  it('zoneWeights give each zone its car count whatever its length, and nothing without zones', () => {
+    const roads = zoned();
+    const sim = new CarSim(roads, { population: 1, seed: 1 });
+    const weights = zoneWeights(sim, roads.zones, [90, 10])!;
+    const sums = [0, 0];
+    weights.forEach((w, e) => (sums[roads.zones![e] as number]! += w));
+    expect(sums[0]).toBeCloseTo(90, 6);
+    expect(sums[1]).toBeCloseTo(10, 6);
+    expect(zoneWeights(sim, undefined, [90, 10])).toBeNull();
+    expect(zoneWeights(sim, roads.zones, undefined)).toBeNull();
+  });
+
+  it('places the cars in the requested split, and keeps relocating them there', () => {
+    const roads = zoned();
+    const run = (zoneCars?: number[]) => {
+      const { runner } = collect();
+      runner.handle({ ...init(roads, 200), zoneCars } as ToWorker);
+      const sim = (runner as unknown as { sim: CarSim }).sim;
+      return { runner, sim };
+    };
+    const plain = run();
+    const split = run([180, 20]);
+    const cars = Array.from({ length: 200 }, (_, i) => i);
+    const [core, rest] = zonesOf(split.sim, roads.zones!, cars) as [number, number];
+    expect(core + rest).toBe(200);
+    expect(core).toBeGreaterThan(160);
+    expect(rest).toBeGreaterThan(5);
+    // Without a split the right half, which is about as long as the left, holds about half.
+    expect(zonesOf(plain.sim, roads.zones!, cars)[1]).toBeGreaterThan(60);
+  });
+
+  it('refills a zone that lost its cars, and trims one that gained too many, without touching the total much', () => {
+    const roads = zoned();
+    const { runner } = collect();
+    runner.handle({ ...init(roads, 200), zoneCars: [150, 50] } as ToWorker);
+    const sim = (runner as unknown as { sim: CarSim }).sim;
+    const inZone = (zone: number) => {
+      let n = 0;
+      for (let i = 0; i < sim.n; i++) if (sim.active[i] && !sim.leaving[i] && roads.zones![sim.edge[i] as number] === zone) n++;
+      return n;
+    };
+    const before = [inZone(0), inZone(1)];
+    for (let i = 0; i < sim.n; i++) if (sim.active[i] && roads.zones![sim.edge[i] as number] === 0 && i % 2 === 0) sim.switchOff(i); // half the core's cars vanish
+    expect(inZone(0)).toBeLessThan(before[0]! - 30);
+    runner.simulate(900);
+    expect(inZone(0)).toBeGreaterThan(before[0]! - 12);
+    expect(inZone(0) + inZone(1)).toBeGreaterThan(190);
+    expect(inZone(0) + inZone(1)).toBeLessThan(215);
   });
 });
 

@@ -61,4 +61,8 @@ signals:
 cars:
   population_share: 0.06            # placeholder: simulated cars as a share of the network's safe capacity (one per 7.5 m of lane). 0.12 gridlocks too often even with relief
   max_population: 6000              # placeholder: cap so a browser worker keeps up
+  zone_density_per_km:              # placeholder: council-area build only (PRESENCE_AREA=full), cars per directed road km in each zone
+    core: 8                         # placeholder: the pilot's 6% share is 8.3 cars/km, so the centre looks as it does now
+    ring: 3                         # placeholder: thin on purpose, a few cars along every main road so traffic reads across the city
+    outer: 1.2                      # placeholder: thinner still; not counted flows
   seed: 2026                        # assumption: fixes personalities and placement, so a run repeats

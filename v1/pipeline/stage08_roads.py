@@ -3,11 +3,12 @@
     uv run python -m pipeline.stage08_roads
 
 Reads data/raw/osm/osm_roads_<area>.json (pipeline/fetch_osm_roads.py) and writes web/public/data/roads.json, the file the web app's
-Simulated cars layer loads. Also writes the car population to use, from config/roads.yaml, into the same file.
+Simulated cars layer loads. Also writes the car population to use, from config/roads.yaml, into the same file. A zoned build also writes
+"sim.zoneCars", the cars to place in each zone (dense in the core, thin outside), so the worker can keep that split.
 
 The pilot keeps every road class. Any other area (PRESENCE_AREA=full) is built in three zones, core, ring and outer, each keeping fewer
 road classes (config/roads.yaml `zones`); the zone of every edge is written to "zones", and the file is roads_<area>.json so the pilot's
-roads.json, which the app loads, is never overwritten.
+roads.json, which the app loads, is never overwritten. The app loads roads_full.json when it exists and roads.json otherwise (web/src/cars.ts).
 """
 
 import gzip
@@ -26,6 +27,15 @@ def population(roads, share, cap):
     """Cars to simulate: a share of the network's safe capacity, capped. Capacity mirrors the engine's `capacity()`."""
     capacity = sum(int(e[7] // LANE_SLOT_M) * max(1, e[3]) for e in roads["edges"])
     return capacity, min(cap, int(capacity * share))
+
+
+def zone_population(roads, density):
+    """(cars per zone, total) for a zoned build: each zone's directed road km times its density (config `zone_density_per_km`)."""
+    km = [0.0] * len(roads["zoneNames"])
+    for edge, zone in zip(roads["edges"], roads["zones"], strict=True):
+        km[zone] += edge[7] / 1000
+    per_zone = [round(km[i] * density[name]) for i, name in enumerate(roads["zoneNames"])]
+    return per_zone, sum(per_zone)
 
 
 def zoning(config):
@@ -49,6 +59,10 @@ def main():
     )
     capacity, cars = population(roads, config["cars"]["population_share"], config["cars"]["max_population"])
     roads["sim"] = {"area": AREA, "capacity": capacity, "population": cars, "seed": config["cars"]["seed"]}
+    if "zones" in roads:  # a zoned build places its cars by zone density, not by the one share of capacity
+        per_zone, total = zone_population(roads, config["cars"]["zone_density_per_km"])
+        roads["sim"].update(population=total, zoneCars=per_zone)
+        cars = total
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(roads, separators=(",", ":")))
     size = {

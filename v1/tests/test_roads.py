@@ -221,3 +221,16 @@ def test_the_default_lane_share_counts_ways_with_no_lane_tag():
     ]
     _, stats = build_graph(elements, BBOX, CLASSES, DEFAULTS)
     assert 0 < stats["inferredLanesShare"] < 1
+
+
+def test_a_zoned_build_places_cars_by_zone_density():
+    from pipeline.stage08_roads import zone_population
+
+    roads = {
+        "zoneNames": ["core", "ring", "outer"],
+        "zones": [0, 0, 1, 2],
+        "edges": [[0, 1, 0, 1, 9, 0, 1, 1000.0], [1, 2, 0, 1, 9, 0, 1, 500.0], [2, 3, 0, 1, 9, 0, 1, 2000.0], [3, 0, 0, 1, 9, 0, 1, 10000.0]],
+    }
+    per_zone, total = zone_population(roads, {"core": 8, "ring": 3, "outer": 1.2})
+    assert per_zone == [12, 6, 12]  # 1.5 km x 8, 2 km x 3, 10 km x 1.2
+    assert total == 30

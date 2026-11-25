@@ -12,6 +12,12 @@ Fetched on 2026-10-29 for the **pilot area** only (Old Town and New Town, `confi
 - Licence: ODbL 1.0, (c) OpenStreetMap contributors.
 - Used for: where simulated cars can drive, their speed limits (98.7% from `maxspeed` tags), lane counts and the 88 signalised junctions. Cars are a **simulation**: no traffic counts or live traffic feed are used, and placement is by road class and lane length.
 
+### DfT road traffic counts, City of Edinburgh (annual average daily flow), fetched 2026-11-17
+- URL: https://roadtraffic.dft.gov.uk/local-authorities/S12000036, read through the site's API (`/api/average-annual-daily-flow?filter[local_authority_id]=29`, `local_authority_id` 29 is City of Edinburgh). Script: `pipeline/fetch_dft_counts.py` (`make counts`).
+- File: `data/raw/counts/dft_aadf_edinburgh.json` (git-ignored): 1,164 rows, 2015 to 2025, 155 count points, 345 rows marked Counted and 819 Estimated, 0.9 MB, sha256 `731e344a651cfa81…`.
+- Licence: Open Government Licence v3.0, (c) Department for Transport.
+- Used by `pipeline/stage14_counts.py` for the latest Counted year per count point (2015 onwards, skipping the pandemic years 2020 and 2021), 110 count points; Estimated rows are a DfT model's output and are not used. A figure is both directions summed and is a daily average, not hourly. There is no direction column. Count points are mostly major roads, with few in the centre. Results in `docs/traffic_counts.md`.
+
 ### Lothian bus timetables and route shapes (GTFS)
 - Scripts: `../lothian/fetch.py` and `../lothian/build.py` (`make buses`). Not under `data/raw/`: the cache is `../lothian/data/raw/` (gitignored).
 - URL: https://data.bus-data.dft.gov.uk/timetable/download/gtfs-file/scotland/ (DfT Bus Open Data Service, public, no key). Accessed 2026-10-30, feed version `20261022_034348`.

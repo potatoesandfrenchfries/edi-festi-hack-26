@@ -31,10 +31,38 @@ speed_defaults_mph:                 # used only where a way has no maxspeed tag
   residential: 20                   # assumption: as above
   living_street: 10                 # assumption: shared space, walking-pace traffic
 
+zones:                              # the council-area build only (PRESENCE_AREA=full). The pilot build ignores this block and keeps every class
+  core_buffer_m: 500                # assumption: the pilot box plus this buffer is the core; every class in `classes` is kept there
+  ring_buffer_m: 3000               # assumption: the pilot box plus this buffer is the ring (the core is inside it)
+  ring_classes:                     # assumption: classes kept in the ring, beyond the core
+    - motorway
+    - motorway_link
+    - trunk
+    - trunk_link
+    - primary
+    - primary_link
+    - secondary
+    - secondary_link
+    - tertiary
+    - tertiary_link
+  outer_classes:                    # assumption: classes kept in the rest of the council area
+    - motorway
+    - motorway_link
+    - trunk
+    - trunk_link
+    - primary
+    - primary_link
+    - secondary
+    - secondary_link
+
 signals:
   snap_metres: 25                   # placeholder: a traffic_signals node this close to a junction makes it signalised
 
 cars:
   population_share: 0.06            # placeholder: simulated cars as a share of the network's safe capacity (one per 7.5 m of lane). 0.12 gridlocks too often even with relief
   max_population: 6000              # placeholder: cap so a browser worker keeps up
+  zone_density_per_km:              # placeholder: council-area build only (PRESENCE_AREA=full), cars per directed road km in each zone
+    core: 8                         # placeholder: the pilot's 6% share is 8.3 cars/km, so the centre looks as it does now
+    ring: 3                         # placeholder: thin on purpose, a few cars along every main road so traffic reads across the city
+    outer: 1.2                      # placeholder: thinner still; not counted flows
   seed: 2026                        # assumption: fixes personalities and placement, so a run repeats

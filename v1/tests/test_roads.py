@@ -2,7 +2,21 @@
 
 import pytest
 
-from pipeline.roads import build_graph, exclusion, haversine, lanes_per_direction, snap_signals, speed_limit, strongly_connected
+from pipeline.common import area
+from pipeline.roads import (
+    bng_box_to_wgs84,
+    build_graph,
+    edge_midpoint,
+    exclusion,
+    haversine,
+    lanes_per_direction,
+    snap_signals,
+    speed_limit,
+    strongly_connected,
+    zone_boxes,
+    zone_function,
+    zone_queries,
+)
 
 CLASSES = {"primary", "residential", "motorway"}
 DEFAULTS = {"primary": 30, "residential": 20, "motorway": 70}
@@ -126,3 +140,97 @@ def test_snap_signals_uses_the_closest_junction():
         [1, 4, "r", 1, 10, 0, 1, [-3.19, 55.95, -3.191, 55.95]],
     ]
     assert snap_signals([(-3.19001, 55.95001)], edges, {1: 0, 2: 1, 3: 2, 4: 3}) == [0]
+
+
+# --- zones (the council-area build) ---------------------------------------------------------------------------------------------
+
+
+def test_zone_boxes_grow_the_pilot_box_by_each_buffer():
+    core, ring = zone_boxes((100, 200, 300, 400), 10, 50)
+    assert core == (90, 190, 310, 410) and ring == (50, 150, 350, 450)
+
+
+def test_a_point_belongs_to_the_innermost_zone_that_holds_it():
+    pilot = area("pilot")["bbox_bng"]
+    zone = zone_function(zone_boxes(pilot, 500, 3000))
+    west, south, east, north = area("pilot")["bbox_wgs84"]
+    assert zone((west + east) / 2, (south + north) / 2) == 0  # the middle of the Old Town and New Town
+    assert zone(west - 0.004, (south + north) / 2) == 0  # about 250 m west: inside the 500 m core buffer
+    assert zone(west - 0.02, (south + north) / 2) == 1  # about 1.3 km west: ring
+    assert zone(west - 0.15, south) == 2  # far west: outer
+
+
+def test_overpass_wgs84_box_holds_the_whole_bng_box():
+    south, west, north, east = bng_box_to_wgs84(zone_boxes(area("pilot")["bbox_bng"], 0, 0)[0])
+    p_west, p_south, p_east, p_north = area("pilot")["bbox_wgs84"]
+    # The grid is slightly rotated against lon/lat, so the enclosing box is a little larger, never smaller.
+    assert south <= p_south and west <= p_west and north >= p_north and east >= p_east
+    assert (south, west, north, east) == pytest.approx((p_south, p_west, p_north, p_east), abs=1e-3)
+
+
+def test_each_zone_fetches_only_what_no_wider_zone_already_returns():
+    classes = ["motorway", "primary", "tertiary", "residential"]
+    queries = zone_queries(classes, {"ring": ["motorway", "primary", "tertiary"], "outer": ["motorway", "primary"]})
+    assert queries == [("outer", ["motorway", "primary"]), ("ring", ["tertiary"]), ("core", ["residential"])]
+    # The union of what the three queries return in the box that holds them covers every class in every zone.
+    assert {c for _, names in queries for c in names} == set(classes)
+    # A zone with nothing extra to ask for is not queried at all.
+    assert [z for z, _ in zone_queries(["primary"], {"ring": ["primary"], "outer": ["primary"]})] == ["outer"]
+
+
+def test_edge_midpoint_is_the_mean_of_the_end_vertices():
+    assert edge_midpoint([0.0, 0.0, 5.0, 5.0, 2.0, 4.0]) == (1.0, 2.0)
+
+
+def zoned_square():
+    """The square, cut at lon -3.18: west of it is the core (residential and primary kept), east of it outer (primary only)."""
+
+    def zone_of(lon, lat):
+        return 0 if lon < -3.18 else 2
+
+    return zone_of, [{"primary", "residential"}, {"primary"}, {"primary"}]
+
+
+def test_an_edge_keeps_its_class_only_if_its_zone_allows_it():
+    zoning = zoned_square()
+    roads, stats = build_graph(square(), BBOX, CLASSES, DEFAULTS, zoning=zoning)
+    assert len(roads["zones"]) == len(roads["edges"]) and roads["zoneNames"] == ["core", "ring", "outer"]
+    names = roads["classes"]
+    for edge, zone in zip(roads["edges"], roads["zones"], strict=True):
+        assert names[edge[2]] in zoning[1][zone]
+        assert zoning[0](*edge_midpoint(edge[8])) == zone
+    unzoned, _ = build_graph(square(), BBOX, CLASSES, DEFAULTS)
+    outer_residential = [
+        e for e in unzoned["edges"] if unzoned["classes"][e[2]] == "residential" and edge_midpoint(e[8])[0] >= -3.18
+    ]
+    assert outer_residential, "the fixture must have a residential edge in the outer zone for this test to mean anything"
+    assert len(roads["edges"]) < len(unzoned["edges"])
+    assert set(stats["byZone"]) == {"core", "outer"} or set(stats["byZone"]) == {"core", "ring", "outer"}
+    assert sum(z["edges"] for z in stats["byZone"].values()) == stats["edges"]
+
+
+def test_without_zoning_the_graph_has_no_zone_fields():
+    roads, stats = build_graph(square(), BBOX, CLASSES, DEFAULTS)
+    assert "zones" not in roads and "zoneNames" not in roads and "byZone" not in stats
+
+
+def test_the_default_lane_share_counts_ways_with_no_lane_tag():
+    elements = [
+        way(1, [1, 2, 3], [(-3.19, 55.95), (-3.18, 55.95), (-3.18, 55.96)], lanes="2"),
+        way(2, [3, 4, 1], [(-3.18, 55.96), (-3.19, 55.96), (-3.19, 55.95)]),
+    ]
+    _, stats = build_graph(elements, BBOX, CLASSES, DEFAULTS)
+    assert 0 < stats["inferredLanesShare"] < 1
+
+
+def test_a_zoned_build_places_cars_by_zone_density():
+    from pipeline.stage08_roads import zone_population
+
+    roads = {
+        "zoneNames": ["core", "ring", "outer"],
+        "zones": [0, 0, 1, 2],
+        "edges": [[0, 1, 0, 1, 9, 0, 1, 1000.0], [1, 2, 0, 1, 9, 0, 1, 500.0], [2, 3, 0, 1, 9, 0, 1, 2000.0], [3, 0, 0, 1, 9, 0, 1, 10000.0]],
+    }
+    per_zone, total = zone_population(roads, {"core": 8, "ring": 3, "outer": 1.2})
+    assert per_zone == [12, 6, 12]  # 1.5 km x 8, 2 km x 3, 10 km x 1.2
+    assert total == 30

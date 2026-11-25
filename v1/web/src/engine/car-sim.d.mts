@@ -7,6 +7,8 @@ export interface Roads {
   nodes: number;
   names?: string[];
   signals?: number[];
+  /** Zone of each edge (0 core, 1 ring, 2 outer), written by a council-area build. */
+  zones?: number[];
   edges: (number | number[])[][];
 }
 
@@ -16,6 +18,9 @@ export interface CarStats {
   extraCars: number;
   fleet: number;
 }
+
+/** Signal states as `signalState` returns them. */
+export const GREEN: 0, AMBER: 1, RED: 2;
 
 /** The engine's seeded random generator. */
 export function mulberry32(seed: number): () => number;
@@ -36,6 +41,8 @@ export class CarSim {
   /** Each car's desired-speed factor (about 0.8 to 1.2) and the posted speed of each road, m/s. */
   factor: Float32Array;
   speed: Float32Array;
+  /** How likely a road is to hold a car at the start: its class's popularity times its lanes (default placement also multiplies by length and lanes). */
+  popularity: Float32Array;
   /** A leaving car is switched off at its next junction. Group is -1 for a car that is not part of a demand group. */
   leaving: Uint8Array;
   group: Int32Array;

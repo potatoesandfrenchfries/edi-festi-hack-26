@@ -5,6 +5,9 @@
 // counts (trip-demand.ts). Where a closure cuts off the venue, the car parks at the nearest road it can reach and its driver walks the rest.
 import type { CarSim } from './engine/car-sim.mjs';
 
+/** The parts of a road graph the entry and parking helpers read; both the car engine and the cell model have them. */
+export type RoadGraph = Pick<CarSim, 'nodes' | 'E' | 'from' | 'to' | 'cls' | 'length' | 'lanes' | 'nodeLon' | 'nodeLat' | 'mPerLon' | 'mPerLat' | 'outStart' | 'inStart'>;
+
 export const SECTORS = ['north', 'west', 'south'] as const;
 export type Sector = (typeof SECTORS)[number];
 
@@ -65,7 +68,7 @@ interface Trip {
 export const emptyRates = (venues: number): TripRates => ({ inbound: Array(venues).fill(0), outbound: Array(venues).fill(0), mix: { local: 1, north: 0, west: 0, south: 0 } });
 
 /** Road nodes within SNAP_MAX_M of a point, nearest first, as [node, metres]. Only nodes with a road in and a road out can be driven to. */
-export function nearestNodes(sim: CarSim, lon: number, lat: number, count = CANDIDATES): [number, number][] {
+export function nearestNodes(sim: RoadGraph, lon: number, lat: number, count = CANDIDATES): [number, number][] {
   const hasOut = (n: number) => (sim.outStart[n + 1] as number) > (sim.outStart[n] as number);
   const hasIn = (n: number) => (sim.inStart[n + 1] as number) > (sim.inStart[n] as number);
   const found: [number, number][] = [];
@@ -77,14 +80,33 @@ export function nearestNodes(sim: CarSim, lon: number, lat: number, count = CAND
   return found.sort((a, b) => a[1] - b[1]).slice(0, count);
 }
 
-/** Entry roads (heading in) and exit roads (heading out) for each compass sector, found in the outer ring of the area. */
-export function gateways(sim: CarSim, classes: readonly string[]): { entry: Record<Sector, number[]>; exit: Record<Sector, number[]> } {
+/** How a council-area graph is laid out: each road's zone (0 core, 1 ring, 2 outer) and the weight of each road as a place to start an ordinary car. */
+export interface ZonedPlacement {
+  zones: readonly number[];
+  weights: Float64Array;
+}
+const FESTIVAL_AREA_ZONES = 1; // the festival's area is the core and the ring: the outer zone is background traffic, beyond the gateways
+
+/**
+ * Entry roads (heading in) and exit roads (heading out) for each compass sector, found in the outer ring of the area. In a zoned graph the
+ * area is the core and the ring, so cars still come in from the edge of the centre (as they did for the pilot) and not from the council boundary.
+ */
+export function gateways(sim: RoadGraph, classes: readonly string[], zones?: readonly number[]): { entry: Record<Sector, number[]>; exit: Record<Sector, number[]> } {
   let minLon = Infinity, maxLon = -Infinity, minLat = Infinity, maxLat = -Infinity;
-  for (let n = 0; n < sim.nodes; n++) {
+  const extend = (n: number) => {
     minLon = Math.min(minLon, sim.nodeLon[n] as number);
     maxLon = Math.max(maxLon, sim.nodeLon[n] as number);
     minLat = Math.min(minLat, sim.nodeLat[n] as number);
     maxLat = Math.max(maxLat, sim.nodeLat[n] as number);
+  };
+  if (zones) {
+    for (let e = 0; e < sim.E; e++) {
+      if ((zones[e] as number) > FESTIVAL_AREA_ZONES) continue;
+      extend(sim.from[e] as number);
+      extend(sim.to[e] as number);
+    }
+  } else {
+    for (let n = 0; n < sim.nodes; n++) extend(n);
   }
   const zone = (n: number): Sector | null => {
     const lon = ((sim.nodeLon[n] as number) - minLon) / Math.max(maxLon - minLon, 1e-9);
@@ -145,12 +167,14 @@ export class TripFlow {
     classes: readonly string[],
     private readonly firstSlot: number,
     private readonly random: () => number,
+    /** A zoned graph's layout: locals then start where ordinary cars do (near the centre, not in proportion to the whole council area's road) and the gateways are at the edge of the ring. */
+    placement: ZonedPlacement | null = null,
   ) {
     this.nodes = venues.map((v) => nearestNodes(sim, v.lon, v.lat));
-    ({ entry: this.entry, exit: this.exit } = gateways(sim, classes));
+    ({ entry: this.entry, exit: this.exit } = gateways(sim, classes, placement?.zones));
     this.cumulative = new Float64Array(sim.E);
     let total = 0;
-    for (let e = 0; e < sim.E; e++) this.cumulative[e] = total += (sim.length[e] as number) * (sim.lanes[e] as number);
+    for (let e = 0; e < sim.E; e++) this.cumulative[e] = total += placement ? (placement.weights[e] as number) : (sim.length[e] as number) * (sim.lanes[e] as number);
     this.rates = emptyRates(venues.length);
     this.owedIn = Array(venues.length).fill(0);
     this.owedOut = Array(venues.length).fill(0);

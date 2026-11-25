@@ -10,6 +10,8 @@ import type { TripRates, TripVenue } from './trips';
 import type { Roads } from './engine/car-sim.mjs';
 import { COLOURS, PERSONALITIES } from './engine/personality.mjs';
 
+/** The council-area graph (`make cars AREA=full`), preferred when present; the pilot's graph is the fallback. */
+export const CARS_PATH_CITY = 'data/roads_full.json';
 export const CARS_PATH = 'data/roads.json';
 export const CARS_SOURCE = 'cars';
 export const CARS_LAYER = 'cars-layer';
@@ -24,18 +26,23 @@ const SEED = 2026;
 
 export interface CarData extends Roads {
   /** Written by pipeline/stage08_roads.py: how many cars fit and how many to run. */
-  sim?: { area: string; capacity: number; population: number; seed: number };
+  sim?: { area: string; capacity: number; population: number; seed: number; zoneCars?: number[] };
 }
 
-export async function loadCarData(fetchFn: typeof fetch = fetch, base: string = document.baseURI): Promise<CarData | null> {
+async function loadRoads(path: string, fetchFn: typeof fetch, base: string): Promise<CarData | null> {
   try {
-    const response = await fetchFn(new URL(CARS_PATH, base));
+    const response = await fetchFn(new URL(path, base));
     if (!response.ok) return null;
     const data = (await response.json()) as CarData;
     return Array.isArray(data.edges) && data.edges.length > 0 && typeof data.nodes === 'number' ? data : null;
   } catch {
     return null;
   }
+}
+
+/** The road graph for the cars: the whole council area if `make cars AREA=full` was run (unless `pilotOnly`), else the pilot's. */
+export async function loadCarData(fetchFn: typeof fetch = fetch, base: string = document.baseURI, pilotOnly = false): Promise<CarData | null> {
+  return (pilotOnly ? null : await loadRoads(CARS_PATH_CITY, fetchFn, base)) ?? (await loadRoads(CARS_PATH, fetchFn, base));
 }
 
 /** Personality colours, with the near-black neutral car lightened on a dark map so it can be seen. */
@@ -241,7 +248,7 @@ export class CarSimulation {
     const worker = this.createWorker();
     this.worker = worker;
     worker.onmessage = (event) => this.receive(event.data);
-    worker.postMessage({ type: 'init', roads: this.data, population: this.data.sim?.population ?? DEFAULT_POPULATION, seed: this.data.sim?.seed ?? SEED, maxDemand: MAX_DEMAND, venues: this.tripVenues, tripSlots: TRIP_SLOTS });
+    worker.postMessage({ type: 'init', roads: this.data, population: this.data.sim?.population ?? DEFAULT_POPULATION, seed: this.data.sim?.seed ?? SEED, maxDemand: MAX_DEMAND, venues: this.tripVenues, tripSlots: TRIP_SLOTS, zoneCars: this.data.sim?.zoneCars });
     if (this.demand !== 1) worker.postMessage({ type: 'demand', fraction: this.demand });
     if (this.busStates) worker.postMessage({ type: 'buses', data: this.busStates });
     if (this.closedEdges.length) worker.postMessage({ type: 'closed', edges: this.closedEdges });

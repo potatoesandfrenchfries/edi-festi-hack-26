@@ -5,6 +5,7 @@ import './styles.css';
 import { BUSES_LAYER, BusSimulation, describeBus, loadBusData, type BusData } from './buses';
 import { TENT_LAYER, TentLayer } from './tent';
 import { CarSimulation, loadCarData } from './cars';
+import { FlowSimulation } from './flow-layer';
 import { BusDiverter } from './bus-diversions';
 import { ClosureLayer, ClosureSchedule, loadClosures } from './closures';
 import { BusCarCoupling } from './coupling';
@@ -80,8 +81,10 @@ async function main() {
   const busData = await loadBusData();
   const buses = busData ? new BusSimulation(busData, reducedMotion.matches ? 1000 : 33) : null;
   // Likewise optional: without `make cars` there are no cars and their switch says so.
-  const carData = await loadCarData();
+  const carData = await loadCarData(fetch, document.baseURI, new URLSearchParams(location.search).get('area') === 'pilot'); // ?area=pilot: the centre only
   const cars = carData ? new CarSimulation(carData, reducedMotion.matches ? 1000 : 100) : null;
+  // Experimental (`?flow` in the address): the cell model's flow, drawn as tinted roads and moving dots, in place of the simulated cars.
+  const flow = carData && new URLSearchParams(location.search).has('flow') ? new FlowSimulation(carData, { scale: 5 }) : null;
   // Also optional (`make closures`): streets closed to vehicles on a Fringe day. They only matter to the cars, so need the road graph.
   const closureData = await loadClosures();
   const closures = carData && closureData ? new ClosureSchedule(closureData, carData) : null;
@@ -127,7 +130,7 @@ async function main() {
       hideLoading();
       return;
     }
-    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed, buses, busData, cars, economics, closures, festival);
+    app ??= createApp(map, profiles, settings, handle, applyStyle, () => basemapFailed, buses, busData, cars, flow, economics, closures, festival);
     app.install();
     state.buildings = true;
     // The first frame with the buildings drawn. The buses only start moving after this: they keep the map from ever going idle.
@@ -135,6 +138,7 @@ async function main() {
       hideLoading();
       buses?.start();
       cars?.start();
+      flow?.start();
     };
     map.once('idle', ready);
     setTimeout(ready, 15000); // never leave the overlay up if the map never goes idle
@@ -156,6 +160,7 @@ function createApp(
   buses: BusSimulation | null,
   busData: BusData | null,
   cars: CarSimulation | null,
+  flow: FlowSimulation | null,
   economics: Economics | null,
   closures: ClosureSchedule | null,
   festival: { demand: Demand | null; accommodation: Accommodation | null; transport: Transport | null; sweep: SweepFile | null },
@@ -199,8 +204,10 @@ function createApp(
     buses?.setSpeed(settings.busSpeed);
     buses?.setTraffic(settings.busTraffic);
     buses?.setFrequency(settings.busFrequency);
-    cars?.setVisible(settings.showCars);
+    cars?.setVisible(settings.showCars && !flow);
     cars?.setSpeed(settings.busSpeed);
+    flow?.setVisible(true);
+    flow?.setSpeed(settings.busSpeed);
     coupling?.setEnabled(settings.busCarCoupling);
     tracker?.setScenario({
       carsOn: cars !== null && settings.showCars,
@@ -268,9 +275,13 @@ function createApp(
   if (economics) {
     tracker = new ImpactTracker(economics, {
       busRates: () => buses?.rates() ?? null,
-      setCarDemand: (fraction) => cars?.setDemand(fraction),
+      setCarDemand: (fraction) => {
+        cars?.setDemand(fraction);
+        flow?.setDemand(fraction);
+      },
       setClosedEdges: (edges) => {
         cars?.setClosedEdges(edges);
+        flow?.setClosedEdges(edges);
         buses?.setClosedEdges(edges);
         closureLayer.setStreets(closures ? closures.streets(edges) : null);
       },
@@ -312,7 +323,9 @@ function createApp(
     if (key === lastTrips) return;
     lastTrips = key;
     const levers = { busFrequency: settings.busFrequency, parkAndRide: state.parkAndRide, closures: settings.festivalClosures };
-    cars.setTripRates(on ? planSlot(festival.demand, festival.transport, date, slot, levers, departures).rates : emptyRates(venueCount));
+    const rates = on ? planSlot(festival.demand, festival.transport, date, slot, levers, departures).rates : emptyRates(venueCount);
+    cars.setTripRates(rates);
+    flow?.setTripRates(rates);
   }
   let lastDestinations = '';
   /** Tells the car worker which share of the ordinary cars should head for a venue, and how likely each building is, by its audience this hour. */
@@ -371,7 +384,10 @@ function createApp(
           },
         })
       : null;
-  if (cars && festival.demand) cars.setTripVenues(tripVenues(festival.demand));
+  if (cars && festival.demand) {
+    cars.setTripVenues(tripVenues(festival.demand));
+    flow?.setTripVenues(tripVenues(festival.demand));
+  }
   if (panel && cars && tracker) {
     tracker.restart(FESTIVAL_DAY_START_S);
     controls.setImpact(tracker.view());
@@ -462,6 +478,7 @@ function createApp(
       festivalLayer?.install(map, isDark());
       closureLayer.install(map); // under the cars
       cars?.install(map, isDark()); // before the buses, so cars are drawn under them
+      flow?.install(map, isDark());
       buses?.install(map, isDark());
       if (!map.getLayer(TENT_LAYER)) map.addLayer(new TentLayer(isDark()));
       paint();
